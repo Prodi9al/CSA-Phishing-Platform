@@ -41,8 +41,40 @@
       color: var(--text);
       height: 100vh;
       display: grid;
-      grid-template-rows: 56px 1fr 40px;
+      grid-template-rows: 56px 1fr 34px;
       overflow: hidden;
+    }
+
+    /* ── TAB SYSTEM ── */
+    .sidebar-tabs {
+      display: flex;
+      background: var(--panel2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-tab {
+      flex: 1;
+      padding: 12px 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--muted2);
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+      letter-spacing: 0.05em;
+    }
+
+    .sidebar-tab:hover {
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text);
+    }
+
+    .sidebar-tab.active {
+      color: var(--csa-gold);
+      border-bottom-color: var(--csa-gold);
+      background: var(--csa-gold-dim);
     }
 
     /* ── HEADER ── */
@@ -389,9 +421,16 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
-      display: grid;
-      grid-template-columns: 1fr 380px;
+      display: flex;
+      flex-direction: column;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    @media (min-width: 800px) {
+      .modal-card {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+      }
     }
 
     .modal-visual {
@@ -414,7 +453,8 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 15px;
+      max-height: 80vh;
     }
     .modal-header {
       display: flex;
@@ -493,6 +533,55 @@
       flex-direction: column;
       overflow: hidden;
       background: var(--panel);
+    }
+
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .tab-content.show {
+      display: flex;
+    }
+
+    /* ACTION CARDS (for Dashboard Tab) */
+    .action-card {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .action-card h3 {
+      font-size: 11px;
+      color: var(--muted2);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      letter-spacing: 0.05em;
+    }
+
+    .config-input-group {
+      margin-bottom: 12px;
+    }
+
+    .config-input-group label {
+      display: block;
+      font-size: 9px;
+      color: var(--muted2);
+      margin-bottom: 4px;
+    }
+
+    .config-input-group input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 11px;
     }
 
     /* TACTIC TABS */
@@ -684,6 +773,36 @@
       flex-shrink: 0;
     }
 
+    /* UTILS */
+    .btn-action {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-action:hover {
+      background: var(--csa-gold-dim);
+      border-color: var(--csa-gold);
+    }
+
+    .btn-action.primary {
+      background: var(--csa-blue-mid);
+      border-color: var(--csa-blue-glow);
+    }
+
+    .btn-action.primary:hover {
+      background: var(--csa-blue-glow);
+    }
+
     /* ── FOOTER ── */
     footer {
       background: var(--panel);
@@ -774,8 +893,63 @@
 
     <!-- SIDEBAR -->
     <div class="sidebar">
-      <div class="tactic-section">
-        <div class="section-label">Attack Tactics — Click to Debrief</div>
+      <!-- NEW TABS -->
+      <div class="sidebar-tabs">
+        <div class="sidebar-tab active" onclick="switchTab('dashboard', this)">DASHBOARD</div>
+        <div class="sidebar-tab" onclick="switchTab('config', this)">CONFIG</div>
+        <div class="sidebar-tab" onclick="switchTab('intel', this)">INTEL</div>
+      </div>
+
+      <!-- TAB: DASHBOARD -->
+      <div id="tab-dashboard" class="tab-content show" style="padding:16px; overflow-y:auto;">
+        <div class="action-card">
+          <h3>Session Overview</h3>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div class="stat-chip">RELAYED FRAMES: <span class="val" id="statsFrames">0</span></div>
+            <div class="stat-chip">CLIENTS LINKED: <span class="val" id="statsClients">0</span></div>
+            <div class="stat-chip" id="geoCountSidebar">LOCATION HITS: <span class="val">0</span></div>
+            <div class="live-pill" style="margin-top:5px;">
+              <div class="live-dot"></div>
+              <span id="wsStatusSidebar">NOT CONNECTED</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-card">
+          <h3>Instructor Controls</h3>
+          <button class="btn-action primary" onclick="exportCSV()">EXPORT SESSION (CSV)</button>
+          <button class="btn-action" onclick="clearFeeds()">CLEAR LIVE FEEDS</button>
+          <button class="btn-action" onclick="location.reload()" style="color:var(--red); border-color:var(--red-dim);">RESET SESSION</button>
+        </div>
+      </div>
+
+      <!-- TAB: CONFIG -->
+      <div id="tab-config" class="tab-content" style="padding:16px; overflow-y:auto;">
+        <div class="action-card">
+          <h3>Event Details</h3>
+          <p style="font-size:10px; opacity:0.6; margin-bottom:15px;">Values here are broadcasted to all victim portals in real-time.</p>
+          
+          <div class="config-input-group">
+            <label>EVENT DATE</label>
+            <input type="text" id="cfgDate" value="27 March 2026">
+          </div>
+          <div class="config-input-group">
+            <label>EVENT TIME</label>
+            <input type="text" id="cfgTime" value="09:00 – 16:00 GMT">
+          </div>
+          <div class="config-input-group">
+            <label>EVENT VENUE</label>
+            <input type="text" id="cfgVenue" value="NCA Tower, Airport By-Pass, Accra">
+          </div>
+
+          <button class="btn-action primary" onclick="updateConfig()">BROADCAST UPDATES</button>
+        </div>
+      </div>
+
+      <!-- TAB: INTEL (EXISTING EDUCATION CONTENT) -->
+      <div id="tab-intel" class="tab-content">
+        <div class="tactic-section" style="overflow-y:auto; flex:1;">
+          <div class="section-label">Attack Tactics — Click to Debrief</div>
 
         <div class="tactic-card active" onclick="show(0,this)">
           <div class="tactic-tag">TACTIC 01</div>
@@ -938,7 +1112,6 @@
           <div class="key-lesson">None of this triggers any browser warning. It is all legal to collect under most web
             APIs. The Data Protection Act protects against misuse — but cannot stop the collection itself.</div>
         </div>
-
       </div>
     </div>
   </div>
@@ -993,24 +1166,12 @@
   </div>
 
   <footer>
-    <div class="footer-controls">
-      <div class="config-panel">
-        <strong>Live Event Configuration:</strong>
-        <input type="text" id="cfgDate" placeholder="Date (e.g. 27 March 2026)" value="27 March 2026">
-        <input type="text" id="cfgTime" placeholder="Time (e.g. 09:00 – 16:00 GMT)" value="09:00 – 16:00 GMT">
-        <input type="text" id="cfgVenue" placeholder="Venue (e.g. NCA Tower, Accra)"
-          value="NCA Tower, Airport By-Pass, Accra">
-        <button onclick="updateConfig()">Broadcast to Victims</button>
-      </div>
-      <div class="right-ctrls">
-        <button class="btn-ctrl" onclick="clearFeeds()" style="margin-right:10px;">CLEAR FEEDS</button>
-        <button class="btn-ctrl" onclick="exportCSV()" style="margin-right:10px;background:#3b82f6;color:white;">EXPORT
-          CSV</button>
-        <button class="btn-ctrl danger" onclick="location.reload()">RESET SESSION</button>
-      </div>
+    <div style="display:flex; align-items:center; gap:20px;">
+      <span>SYSTEM STATUS: <strong id="wsStatus" style="color:var(--green)">OFFLINE</strong></span>
+      <span>|</span>
+      <span>CSA AWARENESS TRAINING &copy; 2026</span>
     </div>
-    <span style="display:block;margin-top:20px;opacity:0.6;">CSA Awareness Training 2026 — Authorised Demo Environment —
-      Do Not Distribute</span>
+    <div style="opacity:0.6;">AUTHORISED DEMO ENVIRONMENT — DO NOT DISTRIBUTE</div>
   </footer>
 
   <script>
@@ -1019,6 +1180,34 @@
 
     let frameCount = 0;
     let connections = {};
+
+    function switchTab(tab, el) {
+      document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('show'));
+      el.classList.add('active');
+      document.getElementById('tab-' + tab).classList.add('show');
+    }
+
+    function updateStatus(text, color) {
+      ['wsStatus', 'wsStatusSidebar', 'wsStatusFooter'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.textContent = text;
+          if (color) el.style.color = color;
+        }
+      });
+    }
+
+    function updateGlobalStats() {
+      document.getElementById('statsFrames').textContent = frameCount;
+      document.getElementById('statsClients').textContent = connCount;
+      document.getElementById('frameCount').textContent = frameCount;
+      document.getElementById('connCount').textContent = connCount;
+      const geoVal = geoTotal;
+      document.querySelectorAll('#geoCount .val, #geoCountSidebar .val').forEach(el => {
+        el.textContent = geoVal;
+      });
+    }
 
     function updateConfig() {
       if (!ws || ws.readyState !== WebSocket.OPEN) return alert('Not connected.');
@@ -1047,10 +1236,7 @@
       feedGrid.innerHTML = '';
       feedGrid.appendChild(emptyState);
       emptyState.style.display = 'flex';
-      document.getElementById('frameCount').textContent = '0';
-      document.getElementById('connCount').textContent = '0';
-      const chip = document.querySelector('#geoCount .val');
-      if (chip) chip.textContent = '0';
+      updateGlobalStats();
     }
 
     let geoTotal = 0;
@@ -1104,7 +1290,7 @@
         feedGrid.appendChild(card);
         card.onclick = () => openModal(id);
         connCount++;
-        document.getElementById('connCount').textContent = connCount;
+        updateGlobalStats();
       }
       return card;
     }
@@ -1164,8 +1350,9 @@
         const f = c.form;
         const parts = [];
         if (f.fullName) parts.push(`👤 ${f.fullName}`);
-        if (f.email) parts.push(`✉ ${f.email}`);
-        if (f.staffId) parts.push(`🪪 ${f.staffId}`);
+        if (f.org) parts.push(`🏢 ${f.org}`);
+        if (f.category) parts.push(`🏷️ ${f.category}`);
+        if (f.regCode) parts.push(`🔑 ${f.regCode}`);
         if (parts.length) {
           lines.push(`<span class="form-data">⚠ FORM SUBMITTED &nbsp;|</span> ${parts.join(' &nbsp;·&nbsp; ')}`);
         }
@@ -1205,8 +1392,13 @@
       const f = c.form || {};
       identity.innerHTML = `
         <div class="detail-item highlight"><span>FULL NAME:</span> <strong>${f.fullName || 'NOT SUBMITTED'}</strong></div>
+        <div class="detail-item"><span>ORGANISATION:</span> <strong>${f.org || 'N/A'}</strong></div>
+        <div class="detail-item"><span>CATEGORY:</span> <strong>${f.category || 'N/A'}</strong></div>
         <div class="detail-item"><span>EMAIL:</span> <strong>${f.email || 'N/A'}</strong></div>
-        <div class="detail-item"><span>STAFF ID:</span> <strong>${f.staffId || 'N/A'}</strong></div>
+        <div class="detail-item"><span>PHONE:</span> <strong>${f.phone || 'N/A'}</strong></div>
+        <div class="detail-item"><span>GENDER:</span> <strong>${f.gender || 'N/A'}</strong></div>
+        <div class="detail-item"><span>REG CODE:</span> <strong>${f.regCode || 'N/A'}</strong></div>
+        <div class="detail-item"><span>SESSION REF:</span> <strong style="color:var(--csa-gold)">${f.refId || 'N/A'}</strong></div>
       `;
 
       // Device Section
@@ -1247,14 +1439,19 @@
     function exportCSV() {
       if (Object.keys(connections).length === 0) return alert('No data to export.');
 
-      const rows = [['Device_ID', 'Name', 'Email', 'Staff_ID', 'IP_Address', 'OS', 'Browser', 'Device_Type', 'Country', 'City', 'GPS_Lat', 'GPS_Lon', 'ISP', 'Timestamp']];
+      const rows = [['Device_ID', 'Name', 'Organisation', 'Category', 'Email', 'Phone', 'Gender', 'Reg_Code', 'Session_Ref', 'IP_Address', 'OS', 'Browser', 'Device_Type', 'Country', 'City', 'GPS_Lat', 'GPS_Lon', 'ISP', 'Timestamp']];
 
       for (const [id, c] of Object.entries(connections)) {
         const row = [
           id,
           c.form?.fullName || '',
+          c.form?.org || '',
+          c.form?.category || '',
           c.form?.email || '',
-          c.form?.staffId || '',
+          c.form?.phone || '',
+          c.form?.gender || '',
+          c.form?.regCode || '',
+          c.form?.refId || '',
           c.device?.serverIP || c.location?.ip || '',
           c.device?.os || '',
           c.device?.browser || '',
@@ -1296,7 +1493,7 @@
     function connect() {
       ws = new WebSocket(WS_URL);
       ws.onopen = () => {
-        document.getElementById('wsStatus').textContent = 'CONNECTED';
+        updateStatus('CONNECTED', 'var(--green)');
         ws.send(JSON.stringify({ type: 'register', role: 'instructor', token: INSTRUCTOR_TOKEN }));
       };
       ws.onmessage = (e) => {
@@ -1306,7 +1503,7 @@
           // Auth responses
           if (msg.type === 'auth_ok') {
             currentRoom = msg.room || 'default';
-            document.getElementById('wsStatus').textContent = 'AUTH OK';
+            updateStatus('AUTH OK', 'var(--csa-gold)');
             // Show session info in header title
             const titleEl = document.querySelector('.header-title');
             if (titleEl) {
@@ -1315,7 +1512,7 @@
             return;
           }
           if (msg.type === 'auth_error') {
-            document.getElementById('wsStatus').textContent = 'AUTH FAIL';
+            updateStatus('AUTH FAIL', 'var(--red)');
             console.error('Instructor auth failed:', msg.reason);
             return;
           }
@@ -1332,7 +1529,7 @@
             const t = document.getElementById('time-' + id);
             if (t) t.textContent = new Date().toTimeString().substr(0, 8);
             frameCount++;
-            document.getElementById('frameCount').textContent = frameCount;
+            updateGlobalStats();
           }
 
           if (msg.type === 'mugshot') {
@@ -1349,8 +1546,7 @@
             getOrCreateCard(id);
             updateCardInfo(id);
             geoTotal++;
-            const chip = document.querySelector('#geoCount .val');
-            if (chip) chip.textContent = geoTotal;
+            updateGlobalStats();
           }
 
           if (msg.type === 'device_info') {
@@ -1360,7 +1556,7 @@
           }
 
           if (msg.type === 'form_data') {
-            connections[id].form = { fullName: msg.fullName, email: msg.email, staffId: msg.staffId };
+            connections[id].form = { ...msg };
             getOrCreateCard(id);
             updateCardInfo(id);
             // Flash the card border to draw attention
@@ -1373,11 +1569,11 @@
         } catch (e) { }
       };
       ws.onclose = () => {
-        document.getElementById('wsStatus').textContent = 'RECONNECTING';
+        updateStatus('RECONNECTING', 'var(--red)');
         setTimeout(connect, 2000);
       };
       ws.onerror = () => {
-        document.getElementById('wsStatus').textContent = 'NO SERVER';
+        updateStatus('NO SERVER', 'var(--red)');
       };
     }
     connect();

