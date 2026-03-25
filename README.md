@@ -161,9 +161,11 @@ After connecting, the header shows: `SESSION: <id>   ROOM: <room>` so the instru
 ---
 
 ## 🔄 How to Update
-You do **not** need to re-clone the repository to get the latest fixes. Just run the update script in your terminal:
-- **Linux/Kali:** `./update.sh`
-- **Windows:** `./update.ps1`
+If you already have the repository:
+1.  **First-Time Only:** Run `git pull origin master` manually to get the new scripts.
+2.  **Every Time After:** Just run:
+    - **Linux/Kali:** `./update.sh`
+    - **Windows:** `./update.ps1`
 
 This will pull the latest code and update any new dependencies automatically.
 
