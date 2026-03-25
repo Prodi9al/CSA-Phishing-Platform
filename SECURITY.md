@@ -15,6 +15,6 @@ We take the security of this project seriously. If you believe you have found a 
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please send an email to [security-reports@example.com](mailto:security-reports@example.com). 
+Instead, please send an email to [kinglukainzy@gmail.com](mailto:kinglukainzy@gmail.com).
 
 You should receive a response within 48 hours. If for some reason you do not, please follow up to ensure we received the original message.

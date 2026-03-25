@@ -930,6 +930,10 @@
           <p style="font-size:10px; opacity:0.6; margin-bottom:15px;">Values here are broadcasted to all victim portals in real-time.</p>
           
           <div class="config-input-group">
+            <label>EVENT NAME</label>
+            <input type="text" id="cfgName" value="National Cyber Hygiene Workshop 2026">
+          </div>
+          <div class="config-input-group">
             <label>EVENT DATE</label>
             <input type="text" id="cfgDate" value="27 March 2026">
           </div>
@@ -1485,6 +1489,7 @@
       ws.send(JSON.stringify({
         type: 'config_update',
         token: INSTRUCTOR_TOKEN,
+        eventName: document.getElementById('cfgName').value,
         eventDate: document.getElementById('cfgDate').value,
         eventTime: document.getElementById('cfgTime').value,
         eventVenue: document.getElementById('cfgVenue').value
