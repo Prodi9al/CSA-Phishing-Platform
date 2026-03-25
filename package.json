@@ -5,9 +5,19 @@
   "main": "relay.js",
   "scripts": {
     "start": "node relay.js",
-    "setup": "npm install"
+    "setup": "npm install",
+    "lint": "eslint .",
+    "audit": "npm audit --audit-level=high",
+    "prepare": "husky install"
   },
-  "keywords": ["cybersecurity", "phishing", "awareness", "training", "csa", "cert-gh"],
+  "keywords": [
+    "cybersecurity",
+    "phishing",
+    "awareness",
+    "training",
+    "csa",
+    "cert-gh"
+  ],
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
     "node": ">=16.0.0"
@@ -15,5 +25,13 @@
   "dependencies": {
     "better-sqlite3": "^9.6.0",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2"
+  },
+  "lint-staged": {
+    "*.js": "eslint --fix"
   }
 }
