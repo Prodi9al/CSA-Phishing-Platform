@@ -1,5 +1,9 @@
 $ErrorActionPreference = "Stop"
 
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$ProjectDir = Split-Path -Parent $ScriptDir
+Set-Location $ProjectDir
+
 Write-Host "`n==========================================================" -ForegroundColor Cyan
 Write-Host "  CSA Phishing Awareness Demo - Windows Setup" -ForegroundColor Cyan
 Write-Host "==========================================================`n" -ForegroundColor Cyan

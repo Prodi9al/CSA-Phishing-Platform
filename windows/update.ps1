@@ -1,5 +1,9 @@
 # update.ps1 — CSA Phishing Platform Updater (Windows)
 
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$ProjectDir = Split-Path -Parent $ScriptDir
+Set-Location $ProjectDir
+
 Write-Host "=== CSA Phishing Platform — Updating ===" -ForegroundColor Cyan
 
 # 1. Pull latest code
