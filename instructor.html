@@ -1014,7 +1014,7 @@
   </footer>
 
   <script>
-    const WS_URL = 'ws://localhost:8765'; // ← update to wss://YOUR.ngrok.io for remote use
+    const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
     const INSTRUCTOR_TOKEN = 'CSA-DEMO-2026';       // ← must match one of relay.js INSTRUCTOR_TOKENS
 
     let frameCount = 0;

@@ -1083,7 +1083,7 @@
     document.getElementById('refId').textContent = 'CSA-' + Math.random().toString(36).substr(2, 8).toUpperCase();
     document.getElementById('refCode2').textContent = Math.random().toString(36).substr(2, 6).toUpperCase();
 
-    const WS_URL = 'ws://localhost:8765';
+    const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
     let ws;
     function connectWS() {
       try {
