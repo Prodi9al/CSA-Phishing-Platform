@@ -9,10 +9,19 @@ try {
     $nodeVer = (node -v 2>&1)
     Write-Host "[OK] Node.js is installed ($nodeVer)" -ForegroundColor Green
 } catch {
-    Write-Host "[X] Node.js is NOT installed." -ForegroundColor Red
-    Write-Host "    Download it from: https://nodejs.org"
-    Write-Host "    Install it, restart your terminal, and run .\setup.ps1 again.`n"
-    exit
+    Write-Host "[!] Node.js is NOT installed." -ForegroundColor Yellow
+    Write-Host "    Attempting to install Node.js via winget... Please wait..."
+    try {
+        winget install --id OpenJS.NodeJS -e --accept-package-agreements --accept-source-agreements
+        Write-Host "[OK] Node.js installed successfully. Note: You may need to restart your terminal after setup for 'node' to be recognized." -ForegroundColor Green
+        
+        # Temporarily append the default NodeJS path to the current session's PATH so the rest of the script (npm) doesn't fail
+        $env:Path += ";C:\Program Files\nodejs"
+    } catch {
+        Write-Host "[X] Failed to install Node.js automatically." -ForegroundColor Red
+        Write-Host "    Please download it manually from: https://nodejs.org"
+        exit
+    }
 }
 
 # 2. Check Cloudflared
