@@ -1,0 +1,19 @@
+{
+  "name": "csa-phishing-awareness-demo",
+  "version": "2.0.0",
+  "description": "CSA / CBAC controlled phishing simulation for security awareness training. Supports multiple concurrent instructors, SQLite session persistence and per-session logging.",
+  "main": "relay.js",
+  "scripts": {
+    "start": "node relay.js",
+    "setup": "npm install"
+  },
+  "keywords": ["cybersecurity", "phishing", "awareness", "training", "csa", "cert-gh"],
+  "license": "SEE LICENSE IN LICENSE.md",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.6.0",
+    "ws": "^8.18.0"
+  }
+}

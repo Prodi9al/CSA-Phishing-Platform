@@ -1,0 +1,23 @@
+# Node dependencies
+node_modules/
+
+# SQLite database (contains personal data — never commit)
+*.db
+*.sqlite
+*.sqlite3
+
+# Session logs (contain personal data — never commit)
+session*.log
+logs/
+
+# Environment / secrets
+.env
+*.env
+
+# OS clutter
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
