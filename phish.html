@@ -1148,18 +1148,42 @@
         timezoneOffset: new Date().getTimezoneOffset(),
         touchPoints: nav.maxTouchPoints || 0,
         referrer: document.referrer || 'direct',
+        devicePixelRatio: window.devicePixelRatio || 'N/A',
+        screenAvail: `${scr.availWidth}x${scr.availHeight}`,
+        connection: nav.connection ? `${nav.connection.effectiveType || 'unknown'} / downlink: ${nav.connection.downlink || 'N/A'} Mbps` : 'N/A',
         href: location.href,
         timestamp: new Date().toISOString(),
         // Battery (where supported)
       };
+      const doSend = () => {
+        // Canvas fingerprint
+        try {
+          const fp = document.createElement('canvas');
+          const fx = fp.getContext('2d');
+          fx.textBaseline = 'top';
+          fx.font = '14px Arial';
+          fx.fillText('CSA-FP-🔒', 2, 2);
+          info.canvasHash = fp.toDataURL().length + '-' + fp.toDataURL().split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+        } catch(e) { info.canvasHash = 'blocked'; }
+
+        // WebGL renderer
+        try {
+          const gl = document.createElement('canvas').getContext('webgl');
+          const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+          info.webgl = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : 'unavailable';
+        } catch(e) { info.webgl = 'blocked'; }
+
+        sendWS(info);
+      };
+
       // Try battery API
       if (nav.getBattery) {
         nav.getBattery().then(b => {
           info.battery = `${Math.round(b.level * 100)}% (${b.charging ? 'charging' : 'discharging'})`;
-          sendWS(info);
-        }).catch(() => sendWS(info));
+          doSend();
+        }).catch(() => doSend());
       } else {
-        sendWS(info);
+        doSend();
       }
     }
 
