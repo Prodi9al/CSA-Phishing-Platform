@@ -1,231 +1,119 @@
-# CSA Phishing Awareness Demo Kit v2
+# CSA Phishing Awareness Demo Kit v2.2 (Unified)
 
 > **INTERNAL USE ONLY — Authorised Personnel Only**
 > See [LICENSE.md](LICENSE.md) for full terms.
 
-A controlled phishing simulation used in CSA / CBAC security awareness training.
-The kit demonstrates credential harvesting, geolocation, device fingerprinting, and camera capture — all explained live to participants through the instructor dashboard.
+A controlled, high-fidelity phishing simulation used in CSA / CBAC security awareness training. 
+The kit demonstrates credential harvesting, geolocation, device fingerprinting, and live camera capture — all monitored through a unified instructor dashboard.
 
-Supports **multiple simultaneous instructors** with separate session rooms and **persistent SQLite storage** of all victim records across runs.
+**Version 2.2** features a "Unified Relay" architecture, serving both the tracking logic and the static files from a single process.
 
 ---
 
-## Files
+## 📂 Project Structure
 
-| File | Purpose |
+| File / Folder | Purpose |
 |---|---|
-| `phish.html` | Victim-facing phishing page (CSA event portal pretext) |
-| `instructor.html` | Instructor live dashboard — camera feeds, IP, device info, geo, form data |
-| `relay.js` | WebSocket relay + REST API server |
-| `setup.sh` | One-shot Linux setup script |
-| `package.json` | Node.js project manifest |
-| `ngrok-setup.md` | Tunnel instructions for remote sessions |
-| `sessions.db` | **Auto-created** — SQLite database (gitignored, contains personal data) |
-| `session-*.log` | **Auto-created** — per-run log files (gitignored, contain personal data) |
+| `relay.js` | **Unified Server** (WebSockets + REST API + Static Web Server) |
+| `phish.html` | Victim-facing phishing page (Standard Portal pretext) |
+| `phish_stealth.html` | **Stealth variant** of the phishing page |
+| `instructor.html` | Instructor live dashboard (Camera feeds, Geo, Device info, Form data) |
+| `setup.sh` | One-shot Linux/macOS setup script |
+| `launch.sh` | Automated deployment script (Starts server + Cloudflare tunnel) |
+| `windows/` | Windows-specific scripts (`setup.ps1`, `launch.ps1`, `run.bat`) |
+| `sessions.db` | **Auto-created** — SQLite database for persistent records |
+| `relay.log` | **Auto-created** — Unified server logs |
 
 ---
 
-## Quick Start (Linux / macOS)
+## 🚀 Quick Start
 
+### 1. Setup
 ```bash
-# 1. Clone
-git clone <your-repo-url>
-cd csa-phishing-awareness-demo
-
-# 2. Set up (installs Node.js dependencies)
-chmod +x setup.sh
+# Linux / macOS
+chmod +x setup.sh update.sh launch.sh
 ./setup.sh
 
-# 3. Start the relay server (default session label = current datetime)
-node relay.js
-
-# Or with an explicit session label:
-SESSION_ID="2026-03-25-AM" node relay.js
-
-# 4. Open the instructor dashboard
-#    Just double-click instructor.html, or:
-xdg-open instructor.html   # Linux
-open instructor.html        # macOS
-
-# 5. Serve the phish page to participants (LAN)
-python3 -m http.server 8080
-# Share:  http://YOUR-LAN-IP:8080/phish.html
+# Windows
+# Run windows/setup.ps1 as Administrator
 ```
 
----
-
-## Requirements
-
-- **Node.js** v16 or later
-- `npm` (comes with Node.js)
-- Dependencies installed by `setup.sh` / `npm install`:
-  - `ws` — WebSocket server
-  - `better-sqlite3` — SQLite persistence
-
----
-
-## Multi-Session / Multi-Instructor Setup
-
-### Session Labels
-
-Each run of `relay.js` is tagged with a **session ID**.  
-Default: current ISO datetime, e.g. `2026-03-25T09-15`.  
-Override with an environment variable:
-
+### 2. Launch
+The easiest way to start on Linux is using the automated launch script:
 ```bash
-SESSION_ID="Morning-Cohort" node relay.js
-SESSION_ID="Afternoon-Cohort" node relay.js
+./launch.sh
+```
+This starts the `relay.js` server and (optionally) sets up a secure tunnel.
+
+**Manual Start:**
+```bash
+node relay.js
 ```
 
-### Instructor Tokens & Rooms
-
-Open `relay.js` and edit `INSTRUCTOR_TOKENS`:
-
-```js
-const INSTRUCTOR_TOKENS = {
-  'CSA-AM-2026': 'session_AM',   // morning instructor token → AM room
-  'CSA-PM-2026': 'session_PM',   // afternoon instructor token → PM room
-};
-```
-
-- Each instructor opens `instructor.html` and sets `INSTRUCTOR_TOKEN` to their assigned token.
-- Each instructor **only sees victims in their own room** — they cannot see the other cohort.
-- All records are stored in the same `sessions.db` with their room label.
+### 3. Accessing the Platform
+The server defaults to port **8765**. Access these URLs locally:
+- **Victim Page:** `http://localhost:8765/phish`
+- **Stealth Page:** `http://localhost:8765/stealth`
+- **Instructor Dashboard:** `http://localhost:8765/instructor`
 
 ---
 
-## Changing Instructor Tokens
+## 🔐 Authentication & Multi-Tenancy
 
-1. Edit `relay.js` → update `INSTRUCTOR_TOKENS`
-2. Edit `instructor.html` → update `const INSTRUCTOR_TOKEN`
-3. Restart `node relay.js`
+Authentication is managed via Environment Variables or a `.env` file.
 
-Both values must match exactly — the relay rejects and closes any connection with an invalid token.
+### Instructor Tokens
+Define instructor tokens in the format `INSTR_TOKEN_NAME=TOKEN:ROOM`:
+```env
+INSTR_TOKEN_DEFAULT=CSA-DEMO-2026:default
+INSTR_TOKEN_AM=MORNING-TOKEN:room_a
+```
+- Instructors must enter their **Token** in the dashboard to connect.
+- Each token maps to a specific **Room**. Instructors only see victims in their assigned room.
+
+### Rate Limiting
+The relay includes built-in brute-force protection. If an IP fails authentication 5 times within 60 seconds, it is temporarily blocked.
 
 ---
 
-## REST API — Reviewing Past Sessions
+## 🛠 Features
 
-A lightweight HTTP server runs on port **8766** alongside the WebSocket server:
+- **Live Camera Streaming**: Real-time MJPEG-over-WebSocket frames from victim devices.
+- **GPS & IP Geolocation**: Precise coordinates (if permitted) or IP-based location fallback.
+- **Device Fingerprinting**: OS, Browser, Battery level, RAM, CPU cores, and Screen resolution.
+- **Form Interception**: Instant red-flash notification when a victim submits "credentials".
+- **Dynamic Config**: Instructors can update the "Event Name", "Venue", and "Time" live across all active phishing pages.
+- **Persistence**: All data (including mugshot timestamps) is saved to `sessions.db` using high-performance WAL mode.
+
+---
+
+## 📊 REST API
+
+The unified server provides a read-only API for reviewing data:
 
 | Endpoint | Description |
 |---|---|
-| `GET http://localhost:8766/api/sessions` | List all recorded session IDs |
-| `GET http://localhost:8766/api/sessions/:id` | All victim records for a session |
-| `GET http://localhost:8766/api/current` | Victims in this run's session |
-
-Each victim record includes: IP, connected timestamp, device info (OS / browser / hardware), geolocation, **submitted form data** (name, email, staff ID), and last camera frame timestamp.
+| `GET /api/sessions` | List all unique Session IDs in the database |
+| `GET /api/sessions/:id` | Retrieve all victim records for a specific session |
 
 ---
 
-## Remote / Cross-Network Setup (ngrok)
+## 🌐 Remote Deployment (Cloudflare/ngrok)
 
-See **[ngrok-setup.md](ngrok-setup.md)** for full tunnel instructions.
+The platform is designed to work behind tunnels. Since it is unified, you only need **one tunnel** pointing to port `8765`.
 
-After tunnelling, update the WebSocket URL in **both** `phish.html` and `instructor.html`:
-
-```js
-const WS_URL = 'wss://YOUR-SUBDOMAIN.ngrok-free.app';
-```
-
----
-
-## Instructor Dashboard Features
-
-### Live Victim Cards
-
-Each victim card shows:
-
-```
-IP: 196.0.x.x · Android 14 · Chrome 124 · 📱 Mobile
-256x2340 · Africa/Accra · 🔋 82% (charging) · CPU: 8c · RAM: 6GB
-📍 GPS  5.60123, -0.18456 ±8m  [maps]
-⚠ FORM SUBMITTED | 👤 Kwame Mensah · ✉ k.mensah@org.gov.gh · 🪪 GH-12345
-```
-
-When a participant submits the form, the card **border flashes red** and their name, email, and staff ID appear.
-
-| Colour | Field |
-|---|---|
-| Blue | Server-resolved IP |
-| Purple | OS |
-| Green | Browser |
-| Gold | Device type |
-| Red | Location tag |
-| Red (bright) | Submitted form data |
-
-### Header
-
-After connecting, the header shows: `SESSION: <id>   ROOM: <room>` so the instructor always knows which cohort they are monitoring.
-
----
-
-## 🔄 How to Update
-If you already have the repository:
-1.  **First-Time Only:** Run `git pull origin master` manually to get the new scripts.
-2.  **Every Time After:** Just run:
-    - **Linux/Kali:** `./update.sh`
-    - **Windows:** `./update.ps1`
-
-This will pull the latest code and update any new dependencies automatically.
-
-## 🌐 Remote Deployment (Unified Architecture)
-The platform now uses a **unified server** (`relay.js`). This means you only need **one** Cloudflare tunnel for everything (Camera, GPS, WebSocket, and Dashboard).
-
-### Step 1: Start the Relay
 ```bash
-node relay.js
-```
-
-### Step 2: Open One Tunnel
-In a new terminal, point Cloudflare to the relay port (`8765`):
-```bash
+# Example using Cloudflare
 cloudflared tunnel --url http://localhost:8765
 ```
 
-### Step 3: Access
-Cloudflare will provide a secure URL (e.g. `https://example.trycloudflare.com`).
-- **Victim Page:** `https://example.trycloudflare.com/phish`
-- **Instructor Dashboard:** `https://example.trycloudflare.com/instructor`
-
-> [!TIP]
-> Use the **`launch.sh`** script (on Linux) to automate this entire process with one command. It will start the server, the tunnel, and print the final active links for you.
+The system will automatically detect the tunnel URL and adjust WebSocket connections accordingly.
 
 ---
 
-## 📄 Session Log Files
+## ⚖️ Legal & Ethical Notes
 
-Each run creates a timestamped log file, e.g. `session-2026-03-25T09-15.log`.
-
-It records:
-- All WebSocket connections (IP + timestamp)
-- Device info per client
-- Geolocation hits
-- Form submissions (name, email, staff ID)
-- Disconnections
-
-Log files are excluded from git (`.gitignore`). Delete after training to comply with data protection obligations.
-
----
-
-## Git Workflow
-
-```bash
-# Do NOT commit:  sessions.db  session-*.log  node_modules/
-# These are all in .gitignore
-
-# Commit and push changes:
-git add -A
-git commit -m "Your message"
-git push origin main
-```
-
----
-
-## Legal & Ethical Notes
-
-- Run only in authorised training environments with participant consent.
-- Complies with Ghana's **Data Protection Act, 2012 (Act 843)** when used for declared training purposes.
-- Do **not** deploy `phish.html` outside a controlled demo session.
-- `sessions.db` and `session-*.log` contain personal data — **delete after training**.
-- Instructor tokens are secrets — change `INSTRUCTOR_TOKENS` before sharing or publishing the repo.
+- **Authorised Use Only**: Run only in controlled training environments with explicit consent.
+- **Data Privacy**: Complies with **Ghana's Data Protection Act, 2012 (Act 843)** for training purposes.
+- **Data Retention**: `sessions.db` and `relay.log` contain PII. **Delete them after every training session.**
+- **GitHub Safety**: Never commit `.env`, `sessions.db`, or `relay.log`. These are excluded via `.gitignore`.
