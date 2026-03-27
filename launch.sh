@@ -51,7 +51,8 @@ echo -e "${YELLOW}➜ Waiting for Cloudflare URL...${NC}"
 attempts=0
 TUNNEL_URL=""
 while [ -z "$TUNNEL_URL" ] && [ $attempts -lt 30 ]; do
-  TUNNEL_URL=$(grep -oP 'https://[a-zA-Z0-9\-]+\.trycloudflare\.com' "$CF_LOG" 2>/dev/null | head -1)
+  # Extract URL correctly across different grep versions
+  TUNNEL_URL=$(grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" "$CF_LOG" 2>/dev/null | head -1)
   sleep 1
   attempts=$((attempts + 1))
 done

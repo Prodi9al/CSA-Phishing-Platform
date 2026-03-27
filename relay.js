@@ -13,6 +13,14 @@ const path = require('path');
 const http = require('http');
 const Database = require('better-sqlite3');
 
+// ── COMPATIBILITY ─────────────────────────────────────────────────────
+if (typeof global.fetch === 'undefined') {
+  console.log('[!] WARNING: Undefined fetch(). Node.js 18+ is required for full functionality.');
+  global.fetch = () => { 
+    return Promise.resolve({ json: () => Promise.resolve({ status: 'error', reason: 'fetch missing' }) });
+  };
+}
+
 // ── CONFIG ────────────────────────────────────────────────────────────
 const WS_PORT = process.env.WS_PORT ? parseInt(process.env.WS_PORT) : 8765;
 const TRUST_PROXY = process.env.TRUST_PROXY !== 'false';
