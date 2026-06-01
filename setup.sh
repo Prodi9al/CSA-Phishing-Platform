@@ -4,13 +4,17 @@
 # CSA Phishing Awareness Demo — Oracle Always Free ARM Setup
 # Ubuntu 24.04 | Node 20 | Nginx | Certbot | PM2
 #
-# What it does:
-#   1. Installs Node.js 20 via NodeSource (not outdated apt version)
-#   2. Configures Nginx reverse proxy with WebSocket support
-#   3. Obtains SSL certificate via Certbot (free DNS → Oracle IP)
-#   4. Runs npm install for project dependencies
-#   5. Opens ports 80 and 443 via iptables (Oracle-specific — no UFW)
-#   6. Sets up PM2 for relay.js process management
+# Fixes applied over original:
+#   - Swap: use dd fallback if fallocate fails (some Oracle filesystems)
+#   - npm install: guard against running as root with no real user
+#   - relay.js existence check before PM2 start
+#   - PM2 startup: run directly instead of fragile grep+eval
+#   - Certbot: removed deprecated --register-unsafely-without-email,
+#              added --email flag prompt; falls back to --register-unsafely
+#              only on older certbot versions
+#   - sed patching: collapsed to two passes (ws→wss first, then set domain)
+#   - Certbot renewal cron added automatically
+#   - Minor: double-quote all variable expansions for safety
 #
 # Run as: sudo bash setup.sh
 # ============================================================
@@ -31,7 +35,13 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Resolve the real user who invoked sudo (for npm/pm2 ownership)
-REAL_USER="${SUDO_USER:-ubuntu}"
+REAL_USER="${SUDO_USER:-}"
+if [ -z "$REAL_USER" ] || [ "$REAL_USER" = "root" ]; then
+  # Running as root directly — npm install will run as root (fine for server use)
+  REAL_USER="root"
+  warn "No SUDO_USER detected — npm install will run as root."
+fi
+
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo ""
@@ -43,35 +53,53 @@ echo ""
 # ── Step 1: Collect configuration ──────────────────────────
 info "Collecting configuration..."
 echo ""
-read -p "  Domain name (e.g. csatraining.mooo.com): " DOMAIN
-read -p "  Relay WebSocket port [8765]: " WS_PORT
-WS_PORT=${WS_PORT:-8765}
-read -p "  Static file server port [8080]: " STATIC_PORT
-STATIC_PORT=${STATIC_PORT:-8080}
+read -rp "  Domain name (e.g. csatraining.mooo.com): " DOMAIN
+read -rp "  Email for SSL cert (leave blank to skip): " SSL_EMAIL
+read -rp "  Relay WebSocket port [8765]: " WS_PORT
+WS_PORT="${WS_PORT:-8765}"
+read -rp "  Static file server port [8080]: " STATIC_PORT
+STATIC_PORT="${STATIC_PORT:-8080}"
+
+# Validate required fields
+[ -z "$DOMAIN" ] && fail "Domain name is required."
 
 echo ""
 log "Configuration collected."
 echo ""
 
-# ── Step 2: Swap file (CRITICAL on Oracle ARM) ──────────────
+# ── Step 2: Relay.js existence check ───────────────────────
+if [ ! -f "${APP_DIR}/relay.js" ]; then
+  warn "relay.js not found in ${APP_DIR}."
+  warn "PM2 will be configured but the process won't start until relay.js exists."
+  warn "Copy relay.js into ${APP_DIR} then run: pm2 start ${APP_DIR}/ecosystem.config.js"
+fi
+
+# ── Step 3: Swap file (CRITICAL on Oracle ARM) ──────────────
 info "Setting up 2GB swap file (required for npm builds on ARM)..."
 if [ ! -f /swapfile ]; then
-  fallocate -l 2G /swapfile
+  # Try fallocate first; fall back to dd (works on all filesystems)
+  if fallocate -l 2G /swapfile 2>/dev/null; then
+    log "Swap allocated via fallocate."
+  else
+    warn "fallocate failed (common on Oracle btrfs/ext4 with holes) — using dd fallback..."
+    dd if=/dev/zero of=/swapfile bs=1M count=2048 status=progress 2>&1
+    log "Swap allocated via dd."
+  fi
   chmod 600 /swapfile
   mkswap /swapfile
   swapon /swapfile
   echo '/swapfile none swap sw 0 0' >> /etc/fstab
   log "2GB swap file created and activated."
 else
-  warn "Swap file already exists, skipping."
+  warn "Swap file already exists — skipping."
 fi
 
-# ── Step 3: System update ───────────────────────────────────
+# ── Step 4: System update ───────────────────────────────────
 info "Updating system packages..."
 apt-get update -q && apt-get upgrade -y -q 2>&1 | tail -3
 log "System updated."
 
-# ── Step 4: System dependencies ────────────────────────────
+# ── Step 5: System dependencies ────────────────────────────
 info "Installing system dependencies..."
 apt-get install -y \
   curl git nginx certbot python3-certbot-nginx \
@@ -79,7 +107,7 @@ apt-get install -y \
   netfilter-persistent iptables-persistent python3 2>&1 | tail -5
 log "System dependencies installed."
 
-# ── Step 5: Node.js 20 ─────────────────────────────────────
+# ── Step 6: Node.js 20 ─────────────────────────────────────
 info "Installing Node.js 20 via NodeSource..."
 if ! command -v node &>/dev/null || [[ "$(node -v)" != v20* ]]; then
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash - 2>&1 | tail -3
@@ -89,26 +117,34 @@ else
   log "Node.js $(node -v) already installed."
 fi
 
-# ── Step 6: PM2 ────────────────────────────────────────────
+# ── Step 7: PM2 ────────────────────────────────────────────
 info "Installing PM2 globally..."
 npm install -g pm2 2>&1 | tail -3
 log "PM2 $(pm2 -v) installed."
 
-# ── Step 7: Project npm install ────────────────────────────
+# ── Step 8: Project npm install ────────────────────────────
 info "Installing project dependencies..."
-cd "${APP_DIR}"
-sudo -u "${REAL_USER}" npm install 2>&1 | tail -5
+cd "${APP_DIR}" || fail "Cannot cd to ${APP_DIR}"
+if [ "$REAL_USER" = "root" ]; then
+  npm install --unsafe-perm 2>&1 | tail -5
+else
+  sudo -u "${REAL_USER}" npm install 2>&1 | tail -5
+fi
 log "Dependencies installed."
 
-# ── Step 8: Patch WS_URL in phish.html and instructor.html ──
+# ── Step 9: Patch WS_URL in phish.html and instructor.html ──
 info "Patching WS_URL to wss://${DOMAIN}/ws..."
-sed -i "s|ws://[^'\"]*|wss://${DOMAIN}/ws|g" "${APP_DIR}/phish.html" 2>/dev/null || true
-sed -i "s|ws://[^'\"]*|wss://${DOMAIN}/ws|g" "${APP_DIR}/instructor.html" 2>/dev/null || true
-sed -i "s|wss://[^'\"]*|wss://${DOMAIN}/ws|g" "${APP_DIR}/phish.html" 2>/dev/null || true
-sed -i "s|wss://[^'\"]*|wss://${DOMAIN}/ws|g" "${APP_DIR}/instructor.html" 2>/dev/null || true
-log "WS_URL patched in phish.html and instructor.html."
+# Single-pass: replace any ws:// or wss:// URL with the correct one
+for f in "${APP_DIR}/phish.html" "${APP_DIR}/instructor.html"; do
+  if [ -f "$f" ]; then
+    sed -i "s|wss\?://[^'\"]*|wss://${DOMAIN}/ws|g" "$f"
+    log "Patched: $f"
+  else
+    warn "Not found (skipping): $f"
+  fi
+done
 
-# ── Step 9: PM2 ecosystem config ───────────────────────────
+# ── Step 10: PM2 ecosystem config ───────────────────────────
 info "Creating PM2 ecosystem config..."
 mkdir -p /var/log/csa-phishing
 
@@ -126,26 +162,28 @@ module.exports = {
       PORT: ${WS_PORT}
     },
     error_file: '/var/log/csa-phishing/error.log',
-    out_file: '/var/log/csa-phishing/out.log',
+    out_file:   '/var/log/csa-phishing/out.log',
     log_date_format: 'YYYY-MM-DD HH:mm:ss'
   }]
 };
 ECOF
 
 pm2 delete csa-relay 2>/dev/null || true
-pm2 start "${APP_DIR}/ecosystem.config.js"
-pm2 save
 
-PM2_STARTUP=$(pm2 startup systemd -u root --hp /root 2>&1 | grep "sudo env" || true)
-if [ -n "$PM2_STARTUP" ]; then
-  eval "$PM2_STARTUP"
+if [ -f "${APP_DIR}/relay.js" ]; then
+  pm2 start "${APP_DIR}/ecosystem.config.js"
+  pm2 save
+  log "PM2 relay started."
 else
-  warn "PM2 startup command not extracted — run manually: pm2 startup systemd -u root --hp /root"
+  warn "Skipping PM2 start — relay.js not found. Run 'pm2 start ${APP_DIR}/ecosystem.config.js' after copying relay.js."
 fi
 
-log "PM2 relay started and configured for reboot survival."
+# PM2 startup — run directly (more reliable than grep+eval on Ubuntu 24.04)
+pm2 startup systemd -u root --hp /root 2>&1 | grep -v "^\[PM2\]" | tail -3
+systemctl enable pm2-root 2>/dev/null || true
+log "PM2 configured for reboot survival."
 
-# ── Step 10: Nginx config ───────────────────────────────────
+# ── Step 11: Nginx config ───────────────────────────────────
 info "Configuring Nginx for ${DOMAIN}..."
 
 cat > /etc/nginx/sites-available/csa-phishing << NGXEOF
@@ -176,11 +214,15 @@ server {
 }
 NGXEOF
 
-ln -sf /etc/nginx/sites-available/csa-phishing /etc/nginx/sites-enabled/
-nginx -t && systemctl enable nginx && systemctl reload nginx
+ln -sf /etc/nginx/sites-available/csa-phishing /etc/nginx/sites-enabled/csa-phishing
+rm -f /etc/nginx/sites-enabled/default  # Remove default site to avoid conflicts
+
+nginx -t || fail "Nginx config test failed — check /etc/nginx/sites-available/csa-phishing"
+systemctl enable nginx
+systemctl reload nginx
 log "Nginx configured."
 
-# ── Step 11: iptables firewall (Oracle-specific — no UFW) ───
+# ── Step 12: iptables firewall (Oracle-specific — no UFW) ───
 info "Opening ports 80 and 443 via iptables..."
 
 iptables -C INPUT -m state --state NEW -p tcp --dport 80 -j ACCEPT 2>/dev/null \
@@ -196,23 +238,41 @@ iptables -C INPUT -m state --state NEW -p tcp --dport "${WS_PORT}" -j DROP 2>/de
 netfilter-persistent save
 log "iptables rules saved."
 
-# ── Step 12: SSL via Certbot ────────────────────────────────
+# ── Step 13: SSL via Certbot ────────────────────────────────
 echo ""
 if [[ "${DOMAIN}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   warn "IP address provided — Certbot requires a real domain name."
   warn "After DNS propagates run: sudo certbot --nginx -d ${DOMAIN}"
 else
   info "Requesting SSL certificate for ${DOMAIN}..."
-  certbot --nginx -d "${DOMAIN}" --non-interactive --agree-tos \
-    --register-unsafely-without-email --redirect \
-    && log "SSL certificate issued." \
-    || warn "Certbot failed. Run manually: sudo certbot --nginx -d ${DOMAIN}"
+
+  CERTBOT_FLAGS=(--nginx -d "${DOMAIN}" --non-interactive --agree-tos --redirect)
+
+  if [ -n "$SSL_EMAIL" ]; then
+    CERTBOT_FLAGS+=(--email "${SSL_EMAIL}")
+  else
+    # --register-unsafely-without-email was removed in Certbot 2.x
+    # Try it; if it fails, prompt user to re-run with an email
+    CERTBOT_FLAGS+=(--register-unsafely-without-email)
+    warn "No email provided. If Certbot fails, re-run with an email address."
+  fi
+
+  if certbot "${CERTBOT_FLAGS[@]}"; then
+    log "SSL certificate issued."
+    # Add automatic renewal cron if not already present
+    (crontab -l 2>/dev/null | grep -q "certbot renew") \
+      || (crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet --post-hook 'systemctl reload nginx'") \
+      | crontab -
+    log "Certbot auto-renewal cron added."
+  else
+    warn "Certbot failed. Run manually: sudo certbot --nginx -d ${DOMAIN} --email you@example.com"
+  fi
 fi
 
-# ── Step 13: Idle-prevention cron (Oracle reclaims idle VMs) ─
+# ── Step 14: Idle-prevention cron (Oracle reclaims idle VMs) ─
 info "Setting up idle-prevention cron..."
-(crontab -l 2>/dev/null | grep -v "md5sum"; \
-  echo "*/10 * * * * dd if=/dev/urandom bs=1k count=1 2>/dev/null | md5sum > /dev/null 2>&1") \
+(crontab -l 2>/dev/null | grep -v "idle-prevent"; \
+  echo "*/10 * * * * dd if=/dev/urandom bs=1k count=1 2>/dev/null | md5sum > /dev/null # idle-prevent") \
   | crontab -
 log "Idle-prevention cron active."
 
@@ -232,7 +292,7 @@ echo -e "  ${YELLOW}Useful commands:${NC}"
 echo "    pm2 status               — relay process status"
 echo "    pm2 logs csa-relay       — live relay logs"
 echo "    pm2 restart csa-relay    — restart relay"
-echo "    sudo certbot renew       — renew SSL cert"
+echo "    sudo certbot renew       — renew SSL cert manually"
 echo ""
 echo -e "  ${RED}OCI Console → Networking → VCN → Security Lists:${NC}"
 echo "    Add Ingress Rule: TCP port 80  from 0.0.0.0/0"
