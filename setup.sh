@@ -124,7 +124,9 @@ else
 fi
 
 # 8. OOM history since last boot
-OOM_COUNT=$(dmesg 2>/dev/null | grep -c "Out of memory\|Killed process" || echo 0)
+OOM_COUNT=$(dmesg 2>/dev/null | grep -c "Out of memory\|Killed process" 2>/dev/null)
+OOM_COUNT="${OOM_COUNT//[^0-9]/}"  # strip any non-numeric chars (e.g. newlines, spaces)
+OOM_COUNT="${OOM_COUNT:-0}"
 if [ "$OOM_COUNT" -gt 0 ]; then
   warn "OOM kills in dmesg since last boot: $OOM_COUNT event(s)"
   warn "  This confirms previous npm runs were killed silently."
@@ -137,7 +139,13 @@ fi
 for PORT in 80 443; do
   if ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
     PROC=$(ss -tlnp | grep ":${PORT} " | awk '{print $NF}' | head -1)
-    warn "Port ${PORT} already bound by: ${PROC} — Nginx may fail to start."
+    if echo "$PROC" | grep -q "nginx"; then
+      log "Port ${PORT}: nginx already running (will be reconfigured — OK)"
+    else
+      warn "Port ${PORT} bound by a non-nginx process: ${PROC}"
+      warn "  This may block Nginx from starting. Stop that process first."
+      PREFLIGHT_OK=false
+    fi
   else
     log "Port ${PORT}: free"
   fi
@@ -146,8 +154,14 @@ done
 # 10. Partial node_modules from a previous failed install
 if [ -d "${APP_DIR}/node_modules" ]; then
   MOD_COUNT=$(find "${APP_DIR}/node_modules" -maxdepth 1 -mindepth 1 -type d | wc -l)
-  warn "node_modules already exists with ${MOD_COUNT} packages — may be a partial failed install."
-  warn "  If npm install fails again: rm -rf ${APP_DIR}/node_modules && sudo bash setup.sh"
+  warn "node_modules already exists with ${MOD_COUNT} packages — likely a partial failed install."
+  read -rp "  Delete and reinstall clean? Strongly recommended [Y/n]: " DEL_MODS
+  if [[ "${DEL_MODS,,}" != "n" ]]; then
+    rm -rf "${APP_DIR}/node_modules"
+    log "node_modules removed — will do a clean install."
+  else
+    warn "Keeping existing node_modules. If npm install fails, delete it manually and re-run."
+  fi
 else
   log "node_modules: not present (fresh install)"
 fi
