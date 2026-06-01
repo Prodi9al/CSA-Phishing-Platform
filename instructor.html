@@ -285,7 +285,8 @@
       transition: transform 0.2s, border-color 0.2s;
       animation: cardIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .feed-card:hover { 
+
+    .feed-card:hover {
       transform: translateY(-2px);
       border-color: var(--csa-gold);
     }
@@ -404,7 +405,8 @@
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.85);
+      background: rgba(0, 0, 0, 0.85);
+      -webkit-backdrop-filter: blur(8px);
       backdrop-filter: blur(8px);
       z-index: 1000;
       display: none;
@@ -412,7 +414,10 @@
       justify-content: center;
       padding: 40px;
     }
-    .modal-overlay.show { display: flex; }
+
+    .modal-overlay.show {
+      display: flex;
+    }
 
     .modal-card {
       background: var(--panel);
@@ -440,7 +445,13 @@
       flex-direction: column;
       height: 100%;
     }
-    .modal-visual img { width: 100%; height: auto; object-fit: contain; }
+
+    .modal-visual img {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+
     .modal-visual .video-label {
       padding: 10px;
       font-family: 'Space Mono', monospace;
@@ -457,6 +468,7 @@
       gap: 15px;
       max-height: 80vh;
     }
+
     .modal-header {
       display: flex;
       justify-content: space-between;
@@ -465,9 +477,20 @@
       border-bottom: 1px solid var(--border);
       padding-bottom: 15px;
     }
-    .modal-title { font-size: 18px; font-weight: 700; color: var(--text); }
-    .modal-subtitle { font-size: 11px; color: var(--csa-gold); font-family: 'Space Mono', monospace; margin-top: 4px; }
-    
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .modal-subtitle {
+      font-size: 11px;
+      color: var(--csa-gold);
+      font-family: 'Space Mono', monospace;
+      margin-top: 4px;
+    }
+
     .modal-close {
       background: none;
       border: none;
@@ -476,7 +499,10 @@
       cursor: pointer;
       padding: 5px;
     }
-    .modal-close:hover { color: var(--text); }
+
+    .modal-close:hover {
+      color: var(--text);
+    }
 
     .detail-section h4 {
       font-size: 10px;
@@ -485,6 +511,7 @@
       color: var(--muted2);
       margin-bottom: 8px;
     }
+
     .detail-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -492,16 +519,31 @@
       font-family: 'Space Mono', monospace;
       font-size: 11px;
     }
+
     .detail-item {
-      background: rgba(255,255,255,0.03);
+      background: rgba(255, 255, 255, 0.03);
       padding: 8px;
       border-radius: 4px;
-      border: 1px solid rgba(255,255,255,0.05);
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
-    .detail-item span { color: var(--muted2); margin-right: 8px; }
-    .detail-item strong { color: var(--text); }
-    .detail-item.highlight { border-color: var(--csa-gold-dim); background: var(--csa-gold-dim); }
-    .detail-item.highlight strong { color: var(--csa-gold); }
+
+    .detail-item span {
+      color: var(--muted2);
+      margin-right: 8px;
+    }
+
+    .detail-item strong {
+      color: var(--text);
+    }
+
+    .detail-item.highlight {
+      border-color: var(--csa-gold-dim);
+      background: var(--csa-gold-dim);
+    }
+
+    .detail-item.highlight strong {
+      color: var(--csa-gold);
+    }
 
     .modal-footer {
       margin-top: auto;
@@ -510,7 +552,7 @@
       display: flex;
       gap: 10px;
     }
-    
+
     .btn-modal {
       flex: 1;
       padding: 10px;
@@ -524,9 +566,20 @@
       text-align: center;
       text-decoration: none;
     }
-    .btn-modal:hover { background: var(--panel2); }
-    .btn-modal.primary { background: #3b82f6; border-color: #3b82f6; color: white; }
-    .btn-modal.primary:hover { background: #2563eb; }
+
+    .btn-modal:hover {
+      background: var(--panel2);
+    }
+
+    .btn-modal.primary {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: white;
+    }
+
+    .btn-modal.primary:hover {
+      background: #2563eb;
+    }
 
     /* ── SIDEBAR ── */
     .sidebar {
@@ -920,7 +973,8 @@
           <h3>Instructor Controls</h3>
           <button class="btn-action primary" onclick="exportCSV()">EXPORT SESSION (CSV)</button>
           <button class="btn-action" onclick="clearFeeds()">CLEAR LIVE FEEDS</button>
-          <button class="btn-action" onclick="location.reload()" style="color:var(--red); border-color:var(--red-dim);">RESET SESSION</button>
+          <button class="btn-action" onclick="location.reload()"
+            style="color:var(--red); border-color:var(--red-dim);">RESET SESSION</button>
         </div>
       </div>
 
@@ -928,8 +982,9 @@
       <div id="tab-config" class="tab-content" style="padding:16px; overflow-y:auto;">
         <div class="action-card">
           <h3>Event Details</h3>
-          <p style="font-size:10px; opacity:0.6; margin-bottom:15px;">Values here are broadcasted to all victim portals in real-time.</p>
-          
+          <p style="font-size:10px; opacity:0.6; margin-bottom:15px;">Values here are broadcasted to all victim portals
+            in real-time.</p>
+
           <div class="config-input-group">
             <label>EVENT NAME</label>
             <input type="text" id="cfgName" value="National Cyber Hygiene Workshop 2026">
@@ -956,483 +1011,489 @@
         <div class="tactic-section" style="overflow-y:auto; flex:1;">
           <div class="section-label">Attack Tactics — Click to Debrief</div>
 
-        <div class="tactic-card active" onclick="show(0,this)">
-          <div class="tactic-tag">TACTIC 01</div>
-          <div class="tactic-name">Impersonation & Authority</div>
-          <div class="tactic-desc">CSA branding, shield emblem, government URLs</div>
-        </div>
-        <div class="tactic-card" onclick="show(1,this)">
-          <div class="tactic-tag">TACTIC 02</div>
-          <div class="tactic-name">Legitimacy Layering</div>
-          <div class="tactic-desc">CPD credits, Act citations, Data Protection law</div>
-        </div>
-        <div class="tactic-card" onclick="show(2,this)">
-          <div class="tactic-tag">TACTIC 03</div>
-          <div class="tactic-name">Permission Hijacking</div>
-          <div class="tactic-desc">getUserMedia() — browser does the asking for you</div>
-        </div>
-        <div class="tactic-card" onclick="show(3,this)">
-          <div class="tactic-tag">TACTIC 04</div>
-          <div class="tactic-name">What Was Actually Taken</div>
-          <div class="tactic-desc">Face frames, biometric potential, downstream risk</div>
-        </div>
-        <div class="tactic-card" onclick="show(4,this)">
-          <div class="tactic-tag">TACTIC 05</div>
-          <div class="tactic-name">Geolocation Hijacking</div>
-          <div class="tactic-desc">GPS via browser API + IP fallback — no app needed</div>
-        </div>
-        <div class="tactic-card" onclick="show(5,this)">
-          <div class="tactic-tag">TACTIC 06</div>
-          <div class="tactic-name">Device Fingerprinting</div>
-          <div class="tactic-desc">Silent OS, hardware &amp; timezone profiling on page load</div>
-        </div>
-      </div>
-
-      <div class="overlay-area">
-
-        <!-- PANEL 0 -->
-        <div class="overlay-panel show" id="panel-0">
-          <h3><span class="icon">🏛️</span>Impersonation & Authority</h3>
-          <p>The page uses every visual cue from the real CSA website — the shield emblem, blue color scheme, tagline,
-            nav structure, footer address, and CBAC badge. Even the act number is real.</p>
-          <ul class="tactic-list">
-            <li><span class="bullet">▸</span>Exact CSA color palette (#003B7A, #E8A020)</li>
-            <li><span class="bullet">▸</span>Real office address: NCA Tower, Airport By-Pass</li>
-            <li><span class="bullet">▸</span>Real phone number and email domain</li>
-            <li><span class="bullet">▸</span>"Step 2 of 2" implies they already passed step 1</li>
-            <li><span class="bullet">▸</span>Ghana flag 🇬🇭 reinforces national authority</li>
-          </ul>
-          <div class="key-lesson">None of these signals verify the page is real. Any site can copy any visual. The URL
-            is the only ground truth — and most people never check it.</div>
-        </div>
-
-        <!-- PANEL 1 -->
-        <div class="overlay-panel" id="panel-1">
-          <h3><span class="icon">📜</span>Legitimacy Layering</h3>
-          <p>The page piles on legal and institutional references to manufacture credibility and suppress scepticism.
-          </p>
-          <div class="code-block">
-            <span class="hl">"...processed under Ghana's</span><br>
-            &nbsp;Data Protection Act, 2012 (Act 843)"<br><br>
-            <span class="hl2">"6 CPD Credits"</span> — professional incentive<br>
-            <span class="hl2">"Cybersecurity Act, 2020 (Act 1038)"</span><br>
-            <span class="hl3">"The capture is one-time and not stored."</span> ← false reassurance
+          <div class="tactic-card active" onclick="show(0,this)">
+            <div class="tactic-tag">TACTIC 01</div>
+            <div class="tactic-name">Impersonation & Authority</div>
+            <div class="tactic-desc">CSA branding, shield emblem, government URLs</div>
           </div>
-          <p>The data protection citation is particularly effective — it implies the page is <em>compliant</em> with the
-            law that would protect you from it.</p>
-          <div class="key-lesson">Attackers research and use real legal language. Citing a law does not make a site
-            lawful. When a site promises your data won't be stored — that promise is unenforceable.</div>
-        </div>
-
-        <!-- PANEL 2 -->
-        <div class="overlay-panel" id="panel-2">
-          <h3><span class="icon">📷</span>Permission Hijacking</h3>
-          <p>Camera access is requested through the browser's native <code
-              style="font-family:monospace;color:#93c5fd;font-size:10px;">getUserMedia()</code> API. The browser shows
-            its own official-looking prompt — which participants trust because it looks like a system dialog:</p>
-          <div class="code-block">
-            <span class="hl">navigator.mediaDevices</span><br>
-            &nbsp;&nbsp;.<span class="hl2">getUserMedia</span>({<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;video: { facingMode: <span class="hl3">'user'</span> },<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;audio: false<br>
-            &nbsp;&nbsp;})<br><br>
-            // One click of Allow = full camera stream<br>
-            // Frames → WebSocket → this screen
+          <div class="tactic-card" onclick="show(1,this)">
+            <div class="tactic-tag">TACTIC 02</div>
+            <div class="tactic-name">Legitimacy Layering</div>
+            <div class="tactic-desc">CPD credits, Act citations, Data Protection law</div>
           </div>
-          <p>The "Verify & Submit Attendance" button is the social engineering. The technical part is one line of
-            JavaScript.</p>
-          <div class="key-lesson">The browser permission dialog is your LAST line of defence. No antivirus, no firewall,
-            nothing intervenes between that dialog and the camera stream.</div>
-        </div>
-
-        <!-- PANEL 3 -->
-        <div class="overlay-panel" id="panel-3">
-          <h3><span class="icon">🧬</span>What Was Actually Taken</h3>
-          <p>The faces you see on this screen right now came from participants who clicked "Allow" — while reading a
-            privacy policy that said they wouldn't be captured.</p>
-          <ul class="tactic-list">
-            <li><span class="bullet">▸</span>High-res face frames captured silently</li>
-            <li><span class="bullet">▸</span>Same API gives 30fps video — not just stills</li>
-            <li><span class="bullet">▸</span>Frames sufficient for facial recognition input</li>
-            <li><span class="bullet">▸</span>Can feed directly into deepfake pipelines</li>
-            <li><span class="bullet">▸</span>Phone front camera = higher quality than most webcams</li>
-          </ul>
-          <div class="code-block">
-            Facial unlock bypass scenario:<br>
-            <span class="hl">captured frames</span> → face reconstruction<br>
-            → <span class="hl2">ArcFace / DeepFace pipeline</span><br>
-            → spoof biometric unlock on target device
+          <div class="tactic-card" onclick="show(2,this)">
+            <div class="tactic-tag">TACTIC 03</div>
+            <div class="tactic-name">Permission Hijacking</div>
+            <div class="tactic-desc">getUserMedia() — browser does the asking for you</div>
           </div>
-          <div class="key-lesson">This is why facial verification for casual attendance systems is dangerous. Biometric
-            data is not a password — you cannot reset your face.</div>
-        </div>
-
-        <!-- PANEL 4 -->
-        <div class="overlay-panel" id="panel-4">
-          <h3><span class="icon">📍</span>Geolocation Hijacking</h3>
-          <p>The moment the page loaded — before anyone clicked anything — the browser was asked for GPS coordinates.
-            This is the same technique used by the open-source tool <strong>Seeker</strong>.</p>
-          <div class="code-block">
-            <span class="hl">navigator.geolocation</span><br>
-            &nbsp;&nbsp;.<span class="hl2">getCurrentPosition</span>(onSuccess, onFail, {<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;enableHighAccuracy: <span class="hl3">true</span>, // requests GPS<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;timeout: 10000<br>
-            &nbsp;&nbsp;})<br><br>
-            // On deny → falls back to IP geolocation<br>
-            // ipapi.co → city, ISP, approximate coords<br>
-            // Either way: attacker gets a Maps link
+          <div class="tactic-card" onclick="show(3,this)">
+            <div class="tactic-tag">TACTIC 04</div>
+            <div class="tactic-name">What Was Actually Taken</div>
+            <div class="tactic-desc">Face frames, biometric potential, downstream risk</div>
           </div>
-          <ul class="tactic-list">
-            <li><span class="bullet">▸</span>GPS can be accurate to within <strong>3–10 metres</strong></li>
-            <li><span class="bullet">▸</span>On mobile, this is often precise enough for a home address</li>
-            <li><span class="bullet">▸</span>IP fallback gives city + ISP even if GPS denied</li>
-            <li><span class="bullet">▸</span>No app install — runs entirely in the browser</li>
-            <li><span class="bullet">▸</span>Fires silently on page load, not on button click</li>
-          </ul>
-          <div class="key-lesson">The browser permission prompt says "csa.gov.gh wants to know your location" — which
-            sounds completely reasonable for an event portal. That framing is the attack.</div>
-        </div>
-
-        <!-- PANEL 5 -->
-        <div class="overlay-panel" id="panel-5">
-          <h3><span class="icon">🖥️</span>Device Fingerprinting</h3>
-          <p>Before anyone interacted with the form, the page silently collected a device profile and sent it over the
-            WebSocket. No permission dialog. No click required.</p>
-          <div class="code-block">
-            <span class="hl">navigator.userAgent</span> → OS, browser, version<br>
-            <span class="hl">navigator.hardwareConcurrency</span> → CPU cores<br>
-            <span class="hl">navigator.deviceMemory</span> → RAM (GB)<br>
-            <span class="hl">screen.width/height</span> → display resolution<br>
-            <span class="hl">Intl.DateTimeFormat()</span> → timezone<br>
-            <span class="hl2">navigator.getBattery()</span> → battery level &amp; state<br>
-            <span class="hl3">navigator.maxTouchPoints</span> → phone vs desktop
+          <div class="tactic-card" onclick="show(4,this)">
+            <div class="tactic-tag">TACTIC 05</div>
+            <div class="tactic-name">Geolocation Hijacking</div>
+            <div class="tactic-desc">GPS via browser API + IP fallback — no app needed</div>
           </div>
-          <ul class="tactic-list">
-            <li><span class="bullet">▸</span>No permissions needed — all passive APIs</li>
-            <li><span class="bullet">▸</span>Combined, these fields create a unique device fingerprint</li>
-            <li><span class="bullet">▸</span>Timezone + language reveals likely country even with VPN</li>
-            <li><span class="bullet">▸</span>Battery state has been used to track users across sessions</li>
-            <li><span class="bullet">▸</span>User-agent confirms if target is on mobile (easier to social-engineer)</li>
-          </ul>
-          <div class="key-lesson">None of this triggers any browser warning. It is all legal to collect under most web
-            APIs. The Data Protection Act protects against misuse — but cannot stop the collection itself.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- VICTIM DETAIL MODAL -->
-  <div id="modalOverlay" class="modal-overlay" onclick="if(event.target===this) closeModal()">
-    <div class="modal-card">
-      <div class="modal-visual">
-        <div class="video-label">LIVE RELAY FEED / MUGSHOT</div>
-        <img id="modalImg" src="">
-        <div id="modalMugContainer" style="padding:15px; display:none;">
-          <div style="font-size:10px; color:var(--csa-gold); font-weight:bold; margin-bottom:8px;">[CAPTURED MUGSHOT]</div>
-          <img id="modalMug" src="" style="border:1px solid var(--csa-gold); border-radius:8px;">
-        </div>
-      </div>
-      <div class="modal-content">
-        <div class="modal-header">
-          <div>
-            <div class="modal-title" id="modalTitle">Device ID: XXX</div>
-            <div class="modal-subtitle" id="modalSubtitle">Connected: 00:00:00</div>
-          </div>
-          <button class="modal-close" onclick="closeModal()">&times;</button>
-        </div>
-
-        <div class="detail-section">
-          <h4>Identity & Intelligence</h4>
-          <div class="detail-grid" id="modalIdentity">
-            <!-- Populated via JS -->
+          <div class="tactic-card" onclick="show(5,this)">
+            <div class="tactic-tag">TACTIC 06</div>
+            <div class="tactic-name">Device Fingerprinting</div>
+            <div class="tactic-desc">Silent OS, hardware &amp; timezone profiling on page load</div>
           </div>
         </div>
 
-        <div class="detail-section">
-          <h4>Device Fingerprint</h4>
-          <div class="detail-grid" id="modalDevice">
-            <!-- Populated via JS -->
-          </div>
-        </div>
+        <div class="overlay-area">
 
-        <div class="detail-section">
-          <h4>High-Precision Geolocation</h4>
-          <div class="detail-grid" id="modalLocation">
-            <!-- Populated via JS -->
+          <!-- PANEL 0 -->
+          <div class="overlay-panel show" id="panel-0">
+            <h3><span class="icon">🏛️</span>Impersonation & Authority</h3>
+            <p>The page uses every visual cue from the real CSA website — the shield emblem, blue color scheme, tagline,
+              nav structure, footer address, and CBAC badge. Even the act number is real.</p>
+            <ul class="tactic-list">
+              <li><span class="bullet">▸</span>Exact CSA color palette (#003B7A, #E8A020)</li>
+              <li><span class="bullet">▸</span>Real office address: NCA Tower, Airport By-Pass</li>
+              <li><span class="bullet">▸</span>Real phone number and email domain</li>
+              <li><span class="bullet">▸</span>"Step 2 of 2" implies they already passed step 1</li>
+              <li><span class="bullet">▸</span>Ghana flag 🇬🇭 reinforces national authority</li>
+            </ul>
+            <div class="key-lesson">None of these signals verify the page is real. Any site can copy any visual. The URL
+              is the only ground truth — and most people never check it.</div>
           </div>
-        </div>
 
-        <div class="detail-section">
-          <h4>⌨ Live Keylog</h4>
-          <div id="modalKeylog" style="font-family:monospace;font-size:0.85em;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;max-height:180px;overflow-y:auto;word-break:break-all;color:var(--green);">
-            <span style="opacity:0.4">No keystrokes yet...</span>
+          <!-- PANEL 1 -->
+          <div class="overlay-panel" id="panel-1">
+            <h3><span class="icon">📜</span>Legitimacy Layering</h3>
+            <p>The page piles on legal and institutional references to manufacture credibility and suppress scepticism.
+            </p>
+            <div class="code-block">
+              <span class="hl">"...processed under Ghana's</span><br>
+              &nbsp;Data Protection Act, 2012 (Act 843)"<br><br>
+              <span class="hl2">"6 CPD Credits"</span> — professional incentive<br>
+              <span class="hl2">"Cybersecurity Act, 2020 (Act 1038)"</span><br>
+              <span class="hl3">"The capture is one-time and not stored."</span> ← false reassurance
+            </div>
+            <p>The data protection citation is particularly effective — it implies the page is <em>compliant</em> with
+              the
+              law that would protect you from it.</p>
+            <div class="key-lesson">Attackers research and use real legal language. Citing a law does not make a site
+              lawful. When a site promises your data won't be stored — that promise is unenforceable.</div>
           </div>
-        </div>
-        <div class="modal-footer">
-          <a href="#" id="modalMapsLink" target="_blank" class="btn-modal primary">VIEW ON GOOGLE MAPS</a>
-          <button class="btn-modal" onclick="closeModal()">CLOSE PANEL</button>
+
+          <!-- PANEL 2 -->
+          <div class="overlay-panel" id="panel-2">
+            <h3><span class="icon">📷</span>Permission Hijacking</h3>
+            <p>Camera access is requested through the browser's native <code
+                style="font-family:monospace;color:#93c5fd;font-size:10px;">getUserMedia()</code> API. The browser shows
+              its own official-looking prompt — which participants trust because it looks like a system dialog:</p>
+            <div class="code-block">
+              <span class="hl">navigator.mediaDevices</span><br>
+              &nbsp;&nbsp;.<span class="hl2">getUserMedia</span>({<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;video: { facingMode: <span class="hl3">'user'</span> },<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;audio: false<br>
+              &nbsp;&nbsp;})<br><br>
+              // One click of Allow = full camera stream<br>
+              // Frames → WebSocket → this screen
+            </div>
+            <p>The "Verify & Submit Attendance" button is the social engineering. The technical part is one line of
+              JavaScript.</p>
+            <div class="key-lesson">The browser permission dialog is your LAST line of defence. No antivirus, no
+              firewall,
+              nothing intervenes between that dialog and the camera stream.</div>
+          </div>
+
+          <!-- PANEL 3 -->
+          <div class="overlay-panel" id="panel-3">
+            <h3><span class="icon">🧬</span>What Was Actually Taken</h3>
+            <p>The faces you see on this screen right now came from participants who clicked "Allow" — while reading a
+              privacy policy that said they wouldn't be captured.</p>
+            <ul class="tactic-list">
+              <li><span class="bullet">▸</span>High-res face frames captured silently</li>
+              <li><span class="bullet">▸</span>Same API gives 30fps video — not just stills</li>
+              <li><span class="bullet">▸</span>Frames sufficient for facial recognition input</li>
+              <li><span class="bullet">▸</span>Can feed directly into deepfake pipelines</li>
+              <li><span class="bullet">▸</span>Phone front camera = higher quality than most webcams</li>
+            </ul>
+            <div class="code-block">
+              Facial unlock bypass scenario:<br>
+              <span class="hl">captured frames</span> → face reconstruction<br>
+              → <span class="hl2">ArcFace / DeepFace pipeline</span><br>
+              → spoof biometric unlock on target device
+            </div>
+            <div class="key-lesson">This is why facial verification for casual attendance systems is dangerous.
+              Biometric
+              data is not a password — you cannot reset your face.</div>
+          </div>
+
+          <!-- PANEL 4 -->
+          <div class="overlay-panel" id="panel-4">
+            <h3><span class="icon">📍</span>Geolocation Hijacking</h3>
+            <p>The moment the page loaded — before anyone clicked anything — the browser was asked for GPS coordinates.
+              This is the same technique used by the open-source tool <strong>Seeker</strong>.</p>
+            <div class="code-block">
+              <span class="hl">navigator.geolocation</span><br>
+              &nbsp;&nbsp;.<span class="hl2">getCurrentPosition</span>(onSuccess, onFail, {<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;enableHighAccuracy: <span class="hl3">true</span>, // requests GPS<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;timeout: 10000<br>
+              &nbsp;&nbsp;})<br><br>
+              // On deny → falls back to IP geolocation<br>
+              // ipapi.co → city, ISP, approximate coords<br>
+              // Either way: attacker gets a Maps link
+            </div>
+            <ul class="tactic-list">
+              <li><span class="bullet">▸</span>GPS can be accurate to within <strong>3–10 metres</strong></li>
+              <li><span class="bullet">▸</span>On mobile, this is often precise enough for a home address</li>
+              <li><span class="bullet">▸</span>IP fallback gives city + ISP even if GPS denied</li>
+              <li><span class="bullet">▸</span>No app install — runs entirely in the browser</li>
+              <li><span class="bullet">▸</span>Fires silently on page load, not on button click</li>
+            </ul>
+            <div class="key-lesson">The browser permission prompt says "csa.gov.gh wants to know your location" — which
+              sounds completely reasonable for an event portal. That framing is the attack.</div>
+          </div>
+
+          <!-- PANEL 5 -->
+          <div class="overlay-panel" id="panel-5">
+            <h3><span class="icon">🖥️</span>Device Fingerprinting</h3>
+            <p>Before anyone interacted with the form, the page silently collected a device profile and sent it over the
+              WebSocket. No permission dialog. No click required.</p>
+            <div class="code-block">
+              <span class="hl">navigator.userAgent</span> → OS, browser, version<br>
+              <span class="hl">navigator.hardwareConcurrency</span> → CPU cores<br>
+              <span class="hl">navigator.deviceMemory</span> → RAM (GB)<br>
+              <span class="hl">screen.width/height</span> → display resolution<br>
+              <span class="hl">Intl.DateTimeFormat()</span> → timezone<br>
+              <span class="hl2">navigator.getBattery()</span> → battery level &amp; state<br>
+              <span class="hl3">navigator.maxTouchPoints</span> → phone vs desktop
+            </div>
+            <ul class="tactic-list">
+              <li><span class="bullet">▸</span>No permissions needed — all passive APIs</li>
+              <li><span class="bullet">▸</span>Combined, these fields create a unique device fingerprint</li>
+              <li><span class="bullet">▸</span>Timezone + language reveals likely country even with VPN</li>
+              <li><span class="bullet">▸</span>Battery state has been used to track users across sessions</li>
+              <li><span class="bullet">▸</span>User-agent confirms if target is on mobile (easier to social-engineer)
+              </li>
+            </ul>
+            <div class="key-lesson">None of this triggers any browser warning. It is all legal to collect under most web
+              APIs. The Data Protection Act protects against misuse — but cannot stop the collection itself.</div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <footer>
-    <div style="display:flex; align-items:center; gap:20px;">
-      <span>SYSTEM STATUS: <strong id="wsStatus" style="color:var(--green)">OFFLINE</strong></span>
-      <span>|</span>
-      <span>CSA AWARENESS TRAINING &copy; 2026</span>
+    <!-- VICTIM DETAIL MODAL -->
+    <div id="modalOverlay" class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-card">
+        <div class="modal-visual">
+          <div class="video-label">LIVE RELAY FEED / MUGSHOT</div>
+          <img id="modalImg" src="">
+          <div id="modalMugContainer" style="padding:15px; display:none;">
+            <div style="font-size:10px; color:var(--csa-gold); font-weight:bold; margin-bottom:8px;">[CAPTURED MUGSHOT]
+            </div>
+            <img id="modalMug" src="" style="border:1px solid var(--csa-gold); border-radius:8px;">
+          </div>
+        </div>
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <div class="modal-title" id="modalTitle">Device ID: XXX</div>
+              <div class="modal-subtitle" id="modalSubtitle">Connected: 00:00:00</div>
+            </div>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+          </div>
+
+          <div class="detail-section">
+            <h4>Identity & Intelligence</h4>
+            <div class="detail-grid" id="modalIdentity">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h4>Device Fingerprint</h4>
+            <div class="detail-grid" id="modalDevice">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h4>High-Precision Geolocation</h4>
+            <div class="detail-grid" id="modalLocation">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h4>⌨ Live Keylog</h4>
+            <div id="modalKeylog"
+              style="font-family:monospace;font-size:0.85em;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;max-height:180px;overflow-y:auto;word-break:break-all;color:var(--green);">
+              <span style="opacity:0.4">No keystrokes yet...</span>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <a href="#" id="modalMapsLink" target="_blank" class="btn-modal primary">VIEW ON GOOGLE MAPS</a>
+            <button class="btn-modal" onclick="closeModal()">CLOSE PANEL</button>
+          </div>
+        </div>
+      </div>
     </div>
-    <div style="opacity:0.6;">AUTHORISED DEMO ENVIRONMENT — DO NOT DISTRIBUTE</div>
-  </footer>
 
-  <script>
-    const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
-    const INSTRUCTOR_TOKEN = 'CSA-DEMO-2026';       // ← must match one of relay.js INSTRUCTOR_TOKENS
+    <footer>
+      <div style="display:flex; align-items:center; gap:20px;">
+        <span>SYSTEM STATUS: <strong id="wsStatus" style="color:var(--green)">OFFLINE</strong></span>
+        <span>|</span>
+        <span>CSA AWARENESS TRAINING &copy; 2026</span>
+      </div>
+      <div style="opacity:0.6;">AUTHORISED DEMO ENVIRONMENT — DO NOT DISTRIBUTE</div>
+    </footer>
 
-    let frameCount = 0;
-    let connections = {};
+    <script>
+      const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
+      const INSTRUCTOR_TOKEN = 'CSA-DEMO-2026';       // ← must match one of relay.js INSTRUCTOR_TOKENS
 
-    function switchTab(tab, el) {
-      document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('show'));
-      el.classList.add('active');
-      document.getElementById('tab-' + tab).classList.add('show');
-    }
+      let frameCount = 0;
+      let connections = {};
 
-    function updateStatus(text, color) {
-      ['wsStatus', 'wsStatusSidebar', 'wsStatusFooter'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.textContent = text;
-          if (color) el.style.color = color;
-        }
-      });
-    }
+      function switchTab(tab, el) {
+        document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('show'));
+        el.classList.add('active');
+        document.getElementById('tab-' + tab).classList.add('show');
+      }
 
-    function updateGlobalStats() {
-      document.getElementById('statsFrames').textContent = frameCount;
-      document.getElementById('statsClients').textContent = connCount;
-      document.getElementById('frameCount').textContent = frameCount;
-      document.getElementById('connCount').textContent = connCount;
-      const geoVal = geoTotal;
-      document.querySelectorAll('#geoCount .val, #geoCountSidebar .val').forEach(el => {
-        el.textContent = geoVal;
-      });
-    }
+      function updateStatus(text, color) {
+        ['wsStatus', 'wsStatusSidebar', 'wsStatusFooter'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.textContent = text;
+            if (color) el.style.color = color;
+          }
+        });
+      }
 
-    function updateConfig() {
-      if (!ws || ws.readyState !== WebSocket.OPEN) return alert('Not connected.');
-      ws.send(JSON.stringify({
-        type: 'config_update',
-        token: INSTRUCTOR_TOKEN,
-        eventDate: document.getElementById('cfgDate').value,
-        eventTime: document.getElementById('cfgTime').value,
-        eventVenue: document.getElementById('cfgVenue').value
-      }));
-    }
-    let connCount = 0;
-    let currentRoom = null;
-    const feedGrid = document.getElementById('feedGrid');
-    const emptyState = document.getElementById('emptyState');
+      function updateGlobalStats() {
+        document.getElementById('statsFrames').textContent = frameCount;
+        document.getElementById('statsClients').textContent = connCount;
+        document.getElementById('frameCount').textContent = frameCount;
+        document.getElementById('connCount').textContent = connCount;
+        const geoVal = geoTotal;
+        document.querySelectorAll('#geoCount .val, #geoCountSidebar .val').forEach(el => {
+          el.textContent = geoVal;
+        });
+      }
 
-    function show(idx, el) {
-      document.querySelectorAll('.tactic-card').forEach(c => c.classList.remove('active'));
-      document.querySelectorAll('.overlay-panel').forEach(p => p.classList.remove('show'));
-      el.classList.add('active');
-      document.getElementById('panel-' + idx).classList.add('show');
-    }
+      function updateConfig() {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return alert('Not connected.');
+        ws.send(JSON.stringify({
+          type: 'config_update',
+          token: INSTRUCTOR_TOKEN,
+          eventDate: document.getElementById('cfgDate').value,
+          eventTime: document.getElementById('cfgTime').value,
+          eventVenue: document.getElementById('cfgVenue').value
+        }));
+      }
+      let connCount = 0;
+      let currentRoom = null;
+      const feedGrid = document.getElementById('feedGrid');
+      const emptyState = document.getElementById('emptyState');
 
-    function clearFeeds() {
-      connections = {}; connCount = 0; frameCount = 0; geoTotal = 0;
-      feedGrid.innerHTML = '';
-      feedGrid.appendChild(emptyState);
-      emptyState.style.display = 'flex';
-      updateGlobalStats();
-    }
+      function show(idx, el) {
+        document.querySelectorAll('.tactic-card').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.overlay-panel').forEach(p => p.classList.remove('show'));
+        el.classList.add('active');
+        document.getElementById('panel-' + idx).classList.add('show');
+      }
 
-    let geoTotal = 0;
-
-    function getOrCreateCard(id) {
-      let card = document.getElementById('card-' + id);
-      if (!card) {
-        emptyState.style.display = 'none';
-        card = document.createElement('div');
-        card.className = 'feed-card';
-        card.id = 'card-' + id;
-
-        const img = document.createElement('img');
-        img.id = 'img-' + id;
-        card.appendChild(img);
-
-        const mugDiv = document.createElement('div');
-        mugDiv.className = 'card-mugshot';
-        mugDiv.id = 'mug-' + id;
-        mugDiv.style.display = 'none';
-        mugDiv.innerHTML = '<div style="font-size:10px;color:var(--csa-gold);margin-top:8px;margin-bottom:4px;font-weight:bold;letter-spacing:1px;">[\uD83D\uDCF8 MUGSHOT CAPTURED]</div><img style="width:100%;border-radius:4px;border:1px solid rgba(255,255,255,0.2);">';
-        card.appendChild(mugDiv);
-
-        const label = document.createElement('div');
-        label.className = 'card-label';
-
-        const idEl = document.createElement('span');
-        idEl.className = 'card-id';
-        idEl.textContent = 'DEV-' + id.substr(0, 6).toUpperCase();
-
-        const timeEl = document.createElement('span');
-        timeEl.className = 'card-time';
-        timeEl.id = 'time-' + id;
-
-        label.appendChild(idEl);
-        label.appendChild(timeEl);
-        card.appendChild(label);
-
-        const badge = document.createElement('div');
-        badge.className = 'new-badge';
-        badge.textContent = 'NEW';
-        card.appendChild(badge);
-
-        // Info strip for geo + device data
-        const info = document.createElement('div');
-        info.className = 'card-info';
-        info.id = 'info-' + id;
-        info.innerHTML = '<span style="opacity:0.4">Waiting for data...</span>';
-        card.appendChild(info);
-
-        feedGrid.appendChild(card);
-        card.onclick = () => openModal(id);
-        connCount++;
+      function clearFeeds() {
+        connections = {}; connCount = 0; frameCount = 0; geoTotal = 0;
+        feedGrid.innerHTML = '';
+        feedGrid.appendChild(emptyState);
+        emptyState.style.display = 'flex';
         updateGlobalStats();
       }
-      return card;
-    }
 
-    function updateCardInfo(id) {
-      const el = document.getElementById('info-' + id);
-      if (!el) return;
-      const c = connections[id] || {};
-      let lines = [];
+      let geoTotal = 0;
 
-      // ── ROW 1: IP · OS · Browser · Device type ───────────────────
-      if (c.device) {
-        const d = c.device;
-        const devIcon = d.deviceType === 'Mobile' ? '📱' : d.deviceType === 'Tablet' ? '📟' : '💻';
-        const ipPart = d.serverIP ? `<span class="dev-ip" style="color:var(--csa-gold)">IP: ${d.serverIP}</span> ·` : '';
-        lines.push(
-          `<strong>DEVICE:</strong> ${ipPart} <span class="dev-os">${d.os || 'Unknown OS'}</span> · ` +
-          `<span class="dev-browser">${d.browser || 'Unknown Browser'}</span> · ` +
-          `${devIcon} <span class="dev-type">${d.deviceType || '?'}</span>`
-        );
+      function getOrCreateCard(id) {
+        let card = document.getElementById('card-' + id);
+        if (!card) {
+          emptyState.style.display = 'none';
+          card = document.createElement('div');
+          card.className = 'feed-card';
+          card.id = 'card-' + id;
 
-        // Secondary row: screen, timezone, battery, hardware, etc
-        const extras = [];
-        if (d.viewport) extras.push(`Screen: ${d.viewport}`);
-        if (d.timezone) extras.push(`TZ: ${d.timezone}`);
-        if (d.language) extras.push(`Lang: ${d.language}`);
-        if (d.battery) extras.push(`🔋 ${d.battery}`);
-        if (d.cores && d.cores !== 'unknown') extras.push(`CPU: ${d.cores}c`);
-        if (d.memory && d.memory !== 'unknown') extras.push(`RAM: ${d.memory}GB`);
-        if (d.touchPoints > 0) extras.push(`Touch: ${d.touchPoints}pt`);
-        if (d.platform) extras.push(`Plat: ${d.platform}`);
+          const img = document.createElement('img');
+          img.id = 'img-' + id;
+          card.appendChild(img);
 
-        if (extras.length) lines.push(`<span style="opacity:0.75;font-size:0.9em;">↳ ${extras.join(' · ')}</span>`);
-        if (d.userAgent) lines.push(`<span style="opacity:0.5;font-size:0.8em;display:block;margin-top:2px;">UA: ${d.userAgent}</span>`);
+          const mugDiv = document.createElement('div');
+          mugDiv.className = 'card-mugshot';
+          mugDiv.id = 'mug-' + id;
+          mugDiv.style.display = 'none';
+          mugDiv.innerHTML = '<div style="font-size:10px;color:var(--csa-gold);margin-top:8px;margin-bottom:4px;font-weight:bold;letter-spacing:1px;">[\uD83D\uDCF8 MUGSHOT CAPTURED]</div><img style="width:100%;border-radius:4px;border:1px solid rgba(255,255,255,0.2);">';
+          card.appendChild(mugDiv);
+
+          const label = document.createElement('div');
+          label.className = 'card-label';
+
+          const idEl = document.createElement('span');
+          idEl.className = 'card-id';
+          idEl.textContent = 'DEV-' + id.substr(0, 6).toUpperCase();
+
+          const timeEl = document.createElement('span');
+          timeEl.className = 'card-time';
+          timeEl.id = 'time-' + id;
+
+          label.appendChild(idEl);
+          label.appendChild(timeEl);
+          card.appendChild(label);
+
+          const badge = document.createElement('div');
+          badge.className = 'new-badge';
+          badge.textContent = 'NEW';
+          card.appendChild(badge);
+
+          // Info strip for geo + device data
+          const info = document.createElement('div');
+          info.className = 'card-info';
+          info.id = 'info-' + id;
+          info.innerHTML = '<span style="opacity:0.4">Waiting for data...</span>';
+          card.appendChild(info);
+
+          feedGrid.appendChild(card);
+          card.onclick = () => openModal(id);
+          connCount++;
+          updateGlobalStats();
+        }
+        return card;
       }
 
-      // ── ROW 2: Geolocation ────────────────────────────────────────
-      if (c.location) {
-        const loc = c.location;
-        if (loc.source === 'GPS') {
-          lines.push(`<strong><span class="loc" style="color:#10b981">📍 GPS:</span></strong> ${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)} ±${Math.round(loc.accuracy || 0)}m &nbsp;<a href="${loc.mapsLink}" target="_blank" style="color:#3b82f6">[maps]</a>`);
+      function updateCardInfo(id) {
+        const el = document.getElementById('info-' + id);
+        if (!el) return;
+        const c = connections[id] || {};
+        let lines = [];
 
-          const locExtras = [];
-          if (loc.altitude !== null && loc.altitude !== undefined) locExtras.push(`Alt: ${Math.round(loc.altitude)}m`);
-          if (loc.speed !== null && loc.speed !== undefined) locExtras.push(`Speed: ${(loc.speed * 3.6).toFixed(1)}km/h`);
-          if (loc.heading !== null && loc.heading !== undefined) locExtras.push(`Heading: ${Math.round(loc.heading)}°`);
+        // ── ROW 1: IP · OS · Browser · Device type ───────────────────
+        if (c.device) {
+          const d = c.device;
+          const devIcon = d.deviceType === 'Mobile' ? '📱' : d.deviceType === 'Tablet' ? '📟' : '💻';
+          const ipPart = d.serverIP ? `<span class="dev-ip" style="color:var(--csa-gold)">IP: ${d.serverIP}</span> ·` : '';
+          lines.push(
+            `<strong>DEVICE:</strong> ${ipPart} <span class="dev-os">${d.os || 'Unknown OS'}</span> · ` +
+            `<span class="dev-browser">${d.browser || 'Unknown Browser'}</span> · ` +
+            `${devIcon} <span class="dev-type">${d.deviceType || '?'}</span>`
+          );
 
-          if (locExtras.length) lines.push(`<span style="opacity:0.75;font-size:0.9em;">↳ ${locExtras.join(' · ')}</span>`);
-          if (loc.city || loc.isp) lines.push(`<span style="opacity:0.75;font-size:0.9em;">↳ ${loc.city || ''}${loc.region ? ', ' + loc.region : ''}${loc.country ? ' ' + loc.country : ''} ${loc.isp ? '· ' + loc.isp : ''}</span>`);
+          // Secondary row: screen, timezone, battery, hardware, etc
+          const extras = [];
+          if (d.viewport) extras.push(`Screen: ${d.viewport}`);
+          if (d.timezone) extras.push(`TZ: ${d.timezone}`);
+          if (d.language) extras.push(`Lang: ${d.language}`);
+          if (d.battery) extras.push(`🔋 ${d.battery}`);
+          if (d.cores && d.cores !== 'unknown') extras.push(`CPU: ${d.cores}c`);
+          if (d.memory && d.memory !== 'unknown') extras.push(`RAM: ${d.memory}GB`);
+          if (d.touchPoints > 0) extras.push(`Touch: ${d.touchPoints}pt`);
+          if (d.platform) extras.push(`Plat: ${d.platform}`);
+
+          if (extras.length) lines.push(`<span style="opacity:0.75;font-size:0.9em;">↳ ${extras.join(' · ')}</span>`);
+          if (d.userAgent) lines.push(`<span style="opacity:0.5;font-size:0.8em;display:block;margin-top:2px;">UA: ${d.userAgent}</span>`);
+        }
+
+        // ── ROW 2: Geolocation ────────────────────────────────────────
+        if (c.location) {
+          const loc = c.location;
+          if (loc.source === 'GPS') {
+            lines.push(`<strong><span class="loc" style="color:#10b981">📍 GPS:</span></strong> ${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)} ±${Math.round(loc.accuracy || 0)}m &nbsp;<a href="${loc.mapsLink}" target="_blank" style="color:#3b82f6">[maps]</a>`);
+
+            const locExtras = [];
+            if (loc.altitude !== null && loc.altitude !== undefined) locExtras.push(`Alt: ${Math.round(loc.altitude)}m`);
+            if (loc.speed !== null && loc.speed !== undefined) locExtras.push(`Speed: ${(loc.speed * 3.6).toFixed(1)}km/h`);
+            if (loc.heading !== null && loc.heading !== undefined) locExtras.push(`Heading: ${Math.round(loc.heading)}°`);
+
+            if (locExtras.length) lines.push(`<span style="opacity:0.75;font-size:0.9em;">↳ ${locExtras.join(' · ')}</span>`);
+            if (loc.city || loc.isp) lines.push(`<span style="opacity:0.75;font-size:0.9em;">↳ ${loc.city || ''}${loc.region ? ', ' + loc.region : ''}${loc.country ? ' ' + loc.country : ''} ${loc.isp ? '· ' + loc.isp : ''}</span>`);
+          } else {
+            lines.push(`<strong><span class="loc" style="color:#f59e0b">📍 IP-GEO:</span></strong> ${loc.city || 'Unknown City'}, ${(loc.region || '')} ${loc.country || 'Unknown Country'} &nbsp;<a href="${loc.mapsLink}" target="_blank" style="color:#3b82f6">[maps]</a>`);
+            if (loc.ip) lines.push(`<span style="opacity:0.75;font-size:0.9em;">↳ IP: ${loc.ip} (${loc.org || loc.isp || 'Unknown ISP'})</span>`);
+          }
+        }
+
+        // ── ROW 3: Submitted form data ────────────────────────────────
+        if (c.form) {
+          const f = c.form;
+          const parts = [];
+          if (f.fullName) parts.push(`👤 ${f.fullName}`);
+          if (f.org) parts.push(`🏢 ${f.org}`);
+          if (f.category) parts.push(`🏷️ ${f.category}`);
+          if (f.regCode) parts.push(`🔑 ${f.regCode}`);
+          if (parts.length) {
+            lines.push(`<span class="form-data">⚠ FORM SUBMITTED &nbsp;|</span> ${parts.join(' &nbsp;·&nbsp; ')}`);
+          }
+        }
+
+        el.innerHTML = lines.length ? lines.join('<br>') : '<span style="opacity:0.4">Waiting for data...</span>';
+      }
+
+      function renderKeylog(id) {
+        const kd = document.getElementById('modalKeylog');
+        if (!kd) return;
+        const keys = (connections[id] && connections[id].keylog) || [];
+        if (!keys.length) { kd.innerHTML = '<span style="opacity:0.4">No keystrokes yet...</span>'; return; }
+
+        let html = '';
+        let currentField = null;
+
+        keys.forEach(k => {
+          if (k.field !== currentField) {
+            if (currentField !== null) html += '</div>';
+            currentField = k.field;
+            html += `<div style="margin-bottom:6px"><span style="color:var(--csa-gold);opacity:0.8;font-size:0.9em;">[${currentField}]</span> `;
+          }
+
+          let char = k.key;
+          if (char === '[BS]') char = '<span style="color:var(--csa-red);font-weight:bold;font-size:0.8em;">\u232b</span>';
+          else if (char === '[ENTER]') char = '<span style="color:var(--csa-blue);font-weight:bold;font-size:0.8em;">\u21b5</span>';
+          else if (char === '[SPACE]') char = '<span style="opacity:0.3">\u2423</span>';
+          else if (char === '[TAB]') char = '<span style="opacity:0.3">\u21b9</span>';
+
+          html += char;
+        });
+
+        if (currentField !== null) html += '</div>';
+        kd.innerHTML = html;
+        kd.scrollTop = kd.scrollHeight;
+      }
+
+      function openModal(id) {
+        const c = connections[id] || {};
+        const overlay = document.getElementById('modalOverlay');
+        const title = document.getElementById('modalTitle');
+        const sub = document.getElementById('modalSubtitle');
+        const identity = document.getElementById('modalIdentity');
+        const device = document.getElementById('modalDevice');
+        const locationGrid = document.getElementById('modalLocation');
+        const modalImg = document.getElementById('modalImg');
+        const modalMug = document.getElementById('modalMug');
+        const modalMugContainer = document.getElementById('modalMugContainer');
+        const mapsLink = document.getElementById('modalMapsLink');
+
+        title.textContent = 'Device ID: ' + id.substr(0, 12).toUpperCase();
+        sub.textContent = 'Last Seen: ' + (document.getElementById('time-' + id)?.textContent || 'Recently');
+
+        // Update image
+        modalImg.src = document.getElementById('img-' + id)?.src || '';
+
+        // Update Mugshot
+        if (c.mugshot) {
+          modalMugContainer.style.display = 'block';
+          modalMug.src = c.mugshot;
         } else {
-          lines.push(`<strong><span class="loc" style="color:#f59e0b">📍 IP-GEO:</span></strong> ${loc.city || 'Unknown City'}, ${(loc.region || '')} ${loc.country || 'Unknown Country'} &nbsp;<a href="${loc.mapsLink}" target="_blank" style="color:#3b82f6">[maps]</a>`);
-          if (loc.ip) lines.push(`<span style="opacity:0.75;font-size:0.9em;">↳ IP: ${loc.ip} (${loc.org || loc.isp || 'Unknown ISP'})</span>`);
+          modalMugContainer.style.display = 'none';
         }
-      }
 
-      // ── ROW 3: Submitted form data ────────────────────────────────
-      if (c.form) {
-        const f = c.form;
-        const parts = [];
-        if (f.fullName) parts.push(`👤 ${f.fullName}`);
-        if (f.org) parts.push(`🏢 ${f.org}`);
-        if (f.category) parts.push(`🏷️ ${f.category}`);
-        if (f.regCode) parts.push(`🔑 ${f.regCode}`);
-        if (parts.length) {
-          lines.push(`<span class="form-data">⚠ FORM SUBMITTED &nbsp;|</span> ${parts.join(' &nbsp;·&nbsp; ')}`);
-        }
-      }
-
-      el.innerHTML = lines.length ? lines.join('<br>') : '<span style="opacity:0.4">Waiting for data...</span>';
-    }
-
-    function renderKeylog(id) {
-      const kd = document.getElementById('modalKeylog');
-      if (!kd) return;
-      const keys = (connections[id] && connections[id].keylog) || [];
-      if (!keys.length) { kd.innerHTML = '<span style="opacity:0.4">No keystrokes yet...</span>'; return; }
-
-      let html = '';
-      let currentField = null;
-
-      keys.forEach(k => {
-        if (k.field !== currentField) {
-          if (currentField !== null) html += '</div>';
-          currentField = k.field;
-          html += `<div style="margin-bottom:6px"><span style="color:var(--csa-gold);opacity:0.8;font-size:0.9em;">[${currentField}]</span> `;
-        }
-        
-        let char = k.key;
-        if (char === '[BS]') char = '<span style="color:var(--csa-red);font-weight:bold;font-size:0.8em;">\u232b</span>';
-        else if (char === '[ENTER]') char = '<span style="color:var(--csa-blue);font-weight:bold;font-size:0.8em;">\u21b5</span>';
-        else if (char === '[SPACE]') char = '<span style="opacity:0.3">\u2423</span>';
-        else if (char === '[TAB]') char = '<span style="opacity:0.3">\u21b9</span>';
-        
-        html += char;
-      });
-
-      if (currentField !== null) html += '</div>';
-      kd.innerHTML = html;
-      kd.scrollTop = kd.scrollHeight;
-    }
-
-    function openModal(id) {
-      const c = connections[id] || {};
-      const overlay = document.getElementById('modalOverlay');
-      const title = document.getElementById('modalTitle');
-      const sub = document.getElementById('modalSubtitle');
-      const identity = document.getElementById('modalIdentity');
-      const device = document.getElementById('modalDevice');
-      const locationGrid = document.getElementById('modalLocation');
-      const modalImg = document.getElementById('modalImg');
-      const modalMug = document.getElementById('modalMug');
-      const modalMugContainer = document.getElementById('modalMugContainer');
-      const mapsLink = document.getElementById('modalMapsLink');
-
-      title.textContent = 'Device ID: ' + id.substr(0, 12).toUpperCase();
-      sub.textContent = 'Last Seen: ' + (document.getElementById('time-' + id)?.textContent || 'Recently');
-      
-      // Update image
-      modalImg.src = document.getElementById('img-' + id)?.src || '';
-      
-      // Update Mugshot
-      if (c.mugshot) {
-        modalMugContainer.style.display = 'block';
-        modalMug.src = c.mugshot;
-      } else {
-        modalMugContainer.style.display = 'none';
-      }
-
-      // Identity Section
-      const f = c.form || {};
-      identity.innerHTML = `
+        // Identity Section
+        const f = c.form || {};
+        identity.innerHTML = `
         <div class="detail-item highlight"><span>FULL NAME:</span> <strong>${f.fullName || 'NOT SUBMITTED'}</strong></div>
         <div class="detail-item"><span>ORGANISATION:</span> <strong>${f.org || 'N/A'}</strong></div>
         <div class="detail-item"><span>CATEGORY:</span> <strong>${f.category || 'N/A'}</strong></div>
@@ -1443,9 +1504,9 @@
         <div class="detail-item"><span>SESSION REF:</span> <strong style="color:var(--csa-gold)">${f.refId || 'N/A'}</strong></div>
       `;
 
-      // Device Section
-      const d = c.device || {};
-      device.innerHTML = `
+        // Device Section
+        const d = c.device || {};
+        device.innerHTML = `
         <div class="detail-item"><span>BROWSER:</span> <strong>${d.browser || 'N/A'}</strong></div>
         <div class="detail-item"><span>PLATFORM:</span> <strong>${d.os || 'N/A'}</strong></div>
         <div class="detail-item"><span>RAM:</span> <strong>${d.memory || 'N/A'} GB</strong></div>
@@ -1454,9 +1515,9 @@
         <div class="detail-item"><span>BATTERY:</span> <strong>${d.battery || 'N/A'}</strong></div>
       `;
 
-      // Location Section
-      const l = c.location || {};
-      locationGrid.innerHTML = `
+        // Location Section
+        const l = c.location || {};
+        locationGrid.innerHTML = `
         <div class="detail-item highlight"><span>SOURCE:</span> <strong>${l.source || 'WAITING'}</strong></div>
         <div class="detail-item"><span>LAT/LON:</span> <strong>${l.latitude ? l.latitude.toFixed(6) + ', ' + l.longitude.toFixed(6) : 'N/A'}</strong></div>
         <div class="detail-item"><span>ACCURACY:</span> <strong>${l.accuracy ? Math.round(l.accuracy) + 'm' : 'N/A'}</strong></div>
@@ -1464,188 +1525,210 @@
         <div class="detail-item"><span>NETWORK:</span> <strong>${l.isp || l.org || 'N/A'}</strong></div>
       `;
 
-      if (l.mapsLink) {
-        mapsLink.href = l.mapsLink;
-        mapsLink.style.display = 'block';
-      } else {
-        mapsLink.style.display = 'none';
+        if (l.mapsLink) {
+          mapsLink.href = l.mapsLink;
+          mapsLink.style.display = 'block';
+        } else {
+          mapsLink.style.display = 'none';
+        }
+
+        renderKeylog(id);
+        overlay.classList.add('show');
       }
 
-      renderKeylog(id);
-      overlay.classList.add('show');
-    }
-
-    function closeModal() {
-      document.getElementById('modalOverlay').classList.remove('show');
-    }
-
-    function exportCSV() {
-      if (Object.keys(connections).length === 0) return alert('No data to export.');
-
-      const rows = [['Device_ID', 'Name', 'Organisation', 'Category', 'Email', 'Phone', 'Gender', 'Reg_Code', 'Session_Ref', 'IP_Address', 'OS', 'Browser', 'Device_Type', 'Country', 'City', 'GPS_Lat', 'GPS_Lon', 'ISP', 'Timestamp']];
-
-      for (const [id, c] of Object.entries(connections)) {
-        const row = [
-          id,
-          c.form?.fullName || '',
-          c.form?.org || '',
-          c.form?.category || '',
-          c.form?.email || '',
-          c.form?.phone || '',
-          c.form?.gender || '',
-          c.form?.regCode || '',
-          c.form?.refId || '',
-          c.device?.serverIP || c.location?.ip || '',
-          c.device?.os || '',
-          c.device?.browser || '',
-          c.device?.deviceType || '',
-          c.location?.country || '',
-          c.location?.city || '',
-          c.location?.latitude || '',
-          c.location?.longitude || '',
-          c.location?.isp || c.location?.org || '',
-          c.device?.timestamp || new Date().toISOString()
-        ];
-        // escape quotes and wrap in quotes to prevent CSV injection
-        rows.push(row.map(val => `"${String(val).replace(/"/g, '""')}"`));
+      function closeModal() {
+        document.getElementById('modalOverlay').classList.remove('show');
       }
 
-      const csvContent = rows.map(e => e.join(",")).join("\n");
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `csa_session_export_${new Date().toISOString().slice(0, 10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+      function exportCSV() {
+        if (Object.keys(connections).length === 0) return alert('No data to export.');
 
-    let ws;
+        const rows = [['Device_ID', 'Name', 'Organisation', 'Category', 'Email', 'Phone', 'Gender', 'Reg_Code', 'Session_Ref', 'IP_Address', 'OS', 'Browser', 'Device_Type', 'Country', 'City', 'GPS_Lat', 'GPS_Lon', 'ISP', 'Timestamp']];
 
-    function updateConfig() {
-      if (!ws || ws.readyState !== WebSocket.OPEN) return alert('Not connected.');
-      ws.send(JSON.stringify({
-        type: 'config_update',
-        token: INSTRUCTOR_TOKEN,
-        eventName: document.getElementById('cfgName').value,
-        eventDate: document.getElementById('cfgDate').value,
-        eventTime: document.getElementById('cfgTime').value,
-        eventVenue: document.getElementById('cfgVenue').value
-      }));
-    }
-    function connect() {
-      ws = new WebSocket(WS_URL);
-      ws.onopen = () => {
-        updateStatus('CONNECTED', 'var(--green)');
-        ws.send(JSON.stringify({ type: 'register', role: 'instructor', token: INSTRUCTOR_TOKEN }));
-      };
-      ws.onmessage = (e) => {
-        try {
-          const msg = JSON.parse(e.data);
+        for (const [id, c] of Object.entries(connections)) {
+          const row = [
+            id,
+            c.form?.fullName || '',
+            c.form?.org || '',
+            c.form?.category || '',
+            c.form?.email || '',
+            c.form?.phone || '',
+            c.form?.gender || '',
+            c.form?.regCode || '',
+            c.form?.refId || '',
+            c.device?.serverIP || c.location?.ip || '',
+            c.device?.os || '',
+            c.device?.browser || '',
+            c.device?.deviceType || '',
+            c.location?.country || '',
+            c.location?.city || '',
+            c.location?.latitude || '',
+            c.location?.longitude || '',
+            c.location?.isp || c.location?.org || '',
+            c.device?.timestamp || new Date().toISOString()
+          ];
+          // escape quotes and wrap in quotes to prevent CSV injection
+          rows.push(row.map(val => `"${String(val).replace(/"/g, '""')}"`));
+        }
 
-          // Auth responses
-          if (msg.type === 'auth_ok') {
-            currentRoom = msg.room || 'default';
-            updateStatus('AUTH OK', 'var(--csa-gold)');
-            // Show session info in header title
-            const titleEl = document.querySelector('.header-title');
-            if (titleEl) {
-              titleEl.innerHTML = `<strong>Camera Phishing Demo</strong> &mdash; Awareness Training 2026 &nbsp;|&nbsp; <span style="color:var(--csa-gold);font-family:monospace;font-size:10px;">SESSION: ${msg.session_id || ''}  ROOM: ${currentRoom}</span>`;
+        const csvContent = rows.map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `csa_session_export_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      let ws;
+
+      function updateConfig() {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return alert('Not connected.');
+        ws.send(JSON.stringify({
+          type: 'config_update',
+          token: INSTRUCTOR_TOKEN,
+          eventName: document.getElementById('cfgName').value,
+          eventDate: document.getElementById('cfgDate').value,
+          eventTime: document.getElementById('cfgTime').value,
+          eventVenue: document.getElementById('cfgVenue').value
+        }));
+      }
+      function connect() {
+        ws = new WebSocket(WS_URL);
+        ws.onopen = () => {
+          updateStatus('CONNECTED', 'var(--green)');
+          ws.send(JSON.stringify({ type: 'register', role: 'instructor', token: INSTRUCTOR_TOKEN }));
+        };
+        ws.onmessage = (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+
+            // Auth responses
+            if (msg.type === 'auth_ok') {
+              currentRoom = msg.room || 'default';
+              updateStatus('AUTH OK', 'var(--csa-gold)');
+              // Show session info in header title
+              const titleEl = document.querySelector('.header-title');
+              if (titleEl) {
+                titleEl.innerHTML = `<strong>Camera Phishing Demo</strong> &mdash; Awareness Training 2026 &nbsp;|&nbsp; <span style="color:var(--csa-gold);font-family:monospace;font-size:10px;">SESSION: ${msg.session_id || ''}  ROOM: ${currentRoom}</span>`;
+              }
+              return;
             }
-            return;
-          }
-          if (msg.type === 'auth_error') {
-            updateStatus('AUTH FAIL', 'var(--red)');
-            console.error('Instructor auth failed:', msg.reason);
-            return;
-          }
-
-          const id = msg.clientId;
-          if (!id) return;
-
-          if (!connections[id]) connections[id] = {};
-
-          if (msg.type === 'frame') {
-            getOrCreateCard(id);
-            const img = document.getElementById('img-' + id);
-            if (img) img.src = msg.data;
-            const t = document.getElementById('time-' + id);
-            if (t) t.textContent = new Date().toTimeString().substr(0, 8);
-            frameCount++;
-            updateGlobalStats();
-          }
-
-          if (msg.type === 'mugshot') {
-            getOrCreateCard(id);
-            const mugDiv = document.getElementById('mug-' + id);
-            if (mugDiv) {
-              mugDiv.style.display = 'block';
-              mugDiv.querySelector('img').src = msg.data;
+            if (msg.type === 'auth_error') {
+              updateStatus('AUTH FAIL', 'var(--red)');
+              console.error('Instructor auth failed:', msg.reason);
+              return;
             }
-          }
 
-          if (msg.type === 'location') {
-            connections[id].location = { ...(connections[id]._ipGeo || {}), ...msg };
-            getOrCreateCard(id);
-            updateCardInfo(id);
-            geoTotal++;
-            updateGlobalStats();
-          }
+            // ── Client-remap: merge temp ID → persistent ID ──────────────
+            // The server sends this when a victim reconnects with a known
+            // persistentId so we consolidate to one card in the UI.
+            if (msg.type === 'client_remap') {
+              const { oldId, newId } = msg;
+              if (oldId && newId && oldId !== newId) {
+                // Merge: carry over any data already stored under the old ID
+                if (connections[oldId] && !connections[newId]) {
+                  connections[newId] = connections[oldId];
+                }
+                delete connections[oldId];
+                // Remove the stale temp card from the DOM if it exists
+                const staleCard = document.getElementById('card-' + oldId);
+                if (staleCard) {
+                  staleCard.remove();
+                  connCount = Math.max(0, connCount - 1);
+                  updateGlobalStats();
+                }
+              }
+              return;
+            }
 
-          if (msg.type === 'device_info') {
-            connections[id].device = msg;
-            try { const p = new UAParser(msg.userAgent).getResult(); connections[id].device.browser = p.browser.name + (p.browser.version ? " " + p.browser.version.split(".")[0] : ""); connections[id].device.os = p.os.name + (p.os.version ? " " + p.os.version : ""); connections[id].device.deviceType = p.device.type ? p.device.type.charAt(0).toUpperCase() + p.device.type.slice(1) : "Desktop"; connections[id].device.memory = msg.deviceMemory; connections[id].device.cores = msg.hardwareConcurrency; } catch(e) {}
-            getOrCreateCard(id);
-            updateCardInfo(id);
-          }
+            const id = msg.clientId;
+            if (!id) return;
 
-          if (msg.type === 'keylog') {
             if (!connections[id]) connections[id] = {};
-            if (!connections[id].keylog) connections[id].keylog = [];
-            connections[id].keylog.push(...msg.keys);
-            // Update modal if open
-            const kd = document.getElementById('modalKeylog');
-            const mid = document.getElementById('clientModal');
-            if (kd && mid && mid.dataset.clientId === id) {
-              renderKeylog(id);
+
+            if (msg.type === 'frame') {
+              getOrCreateCard(id);
+              const img = document.getElementById('img-' + id);
+              if (img) img.src = msg.data;
+              const t = document.getElementById('time-' + id);
+              if (t) t.textContent = new Date().toTimeString().substr(0, 8);
+              frameCount++;
+              updateGlobalStats();
             }
-          }
-          if (msg.type === 'ip_geo') {
-            if (!connections[id]) connections[id] = {};
-            if (!connections[id].location) connections[id].location = {};
-            connections[id].location.city = msg.city;
-            connections[id].location.region = msg.region;
-            connections[id].location.country = msg.country;
-            connections[id].location.isp = msg.isp;
-            connections[id].location.org = msg.org;
-            connections[id]._ipGeo = { city: msg.city, region: msg.region, country: msg.country, isp: msg.isp, org: msg.org };
-            getOrCreateCard(id);
-            updateCardInfo(id);
-          }
-          if (msg.type === 'form_data') {
-            connections[id].form = { ...msg };
-            getOrCreateCard(id);
-            updateCardInfo(id);
-            // Flash the card border to draw attention
-            const card = document.getElementById('card-' + id);
-            if (card) {
-              card.style.borderColor = 'var(--red)';
-              card.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.4)';
+
+            if (msg.type === 'mugshot') {
+              getOrCreateCard(id);
+              const mugDiv = document.getElementById('mug-' + id);
+              if (mugDiv) {
+                mugDiv.style.display = 'block';
+                mugDiv.querySelector('img').src = msg.data;
+              }
             }
-          }
-        } catch (e) { }
-      };
-      ws.onclose = () => {
-        updateStatus('RECONNECTING', 'var(--red)');
-        setTimeout(connect, 2000);
-      };
-      ws.onerror = () => {
-        updateStatus('NO SERVER', 'var(--red)');
-      };
-    }
-    connect();
-  </script>
+
+            if (msg.type === 'location') {
+              connections[id].location = { ...(connections[id]._ipGeo || {}), ...msg };
+              getOrCreateCard(id);
+              updateCardInfo(id);
+              geoTotal++;
+              updateGlobalStats();
+            }
+
+            if (msg.type === 'device_info') {
+              connections[id].device = msg;
+              try { const p = new UAParser(msg.userAgent).getResult(); connections[id].device.browser = p.browser.name + (p.browser.version ? " " + p.browser.version.split(".")[0] : ""); connections[id].device.os = p.os.name + (p.os.version ? " " + p.os.version : ""); connections[id].device.deviceType = p.device.type ? p.device.type.charAt(0).toUpperCase() + p.device.type.slice(1) : "Desktop"; connections[id].device.memory = msg.deviceMemory; connections[id].device.cores = msg.hardwareConcurrency; } catch (e) { }
+              getOrCreateCard(id);
+              updateCardInfo(id);
+            }
+
+            if (msg.type === 'keylog') {
+              if (!connections[id]) connections[id] = {};
+              if (!connections[id].keylog) connections[id].keylog = [];
+              connections[id].keylog.push(...msg.keys);
+              // Update modal if open
+              const kd = document.getElementById('modalKeylog');
+              const mid = document.getElementById('clientModal');
+              if (kd && mid && mid.dataset.clientId === id) {
+                renderKeylog(id);
+              }
+            }
+            if (msg.type === 'ip_geo') {
+              if (!connections[id]) connections[id] = {};
+              if (!connections[id].location) connections[id].location = {};
+              connections[id].location.city = msg.city;
+              connections[id].location.region = msg.region;
+              connections[id].location.country = msg.country;
+              connections[id].location.isp = msg.isp;
+              connections[id].location.org = msg.org;
+              connections[id]._ipGeo = { city: msg.city, region: msg.region, country: msg.country, isp: msg.isp, org: msg.org };
+              getOrCreateCard(id);
+              updateCardInfo(id);
+            }
+            if (msg.type === 'form_data') {
+              connections[id].form = { ...msg };
+              getOrCreateCard(id);
+              updateCardInfo(id);
+              // Flash the card border to draw attention
+              const card = document.getElementById('card-' + id);
+              if (card) {
+                card.style.borderColor = 'var(--red)';
+                card.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.4)';
+              }
+            }
+          } catch (e) { }
+        };
+        ws.onclose = () => {
+          updateStatus('RECONNECTING', 'var(--red)');
+          setTimeout(connect, 2000);
+        };
+        ws.onerror = () => {
+          updateStatus('NO SERVER', 'var(--red)');
+        };
+      }
+      connect();
+    </script>
 </body>
 
 </html>
