@@ -125,10 +125,34 @@ log "PM2 $(pm2 -v) installed."
 # ── Step 8: Project npm install ────────────────────────────
 info "Installing project dependencies..."
 cd "${APP_DIR}" || fail "Cannot cd to ${APP_DIR}"
-if [ "$REAL_USER" = "root" ]; then
-  npm install --unsafe-perm 2>&1 | tail -5
+
+# Confirm swap is active before npm (critical on Oracle ARM)
+SWAP_KB=$(grep SwapTotal /proc/meminfo | awk '{print $2}')
+if [ "${SWAP_KB:-0}" -lt 1000000 ]; then
+  warn "Swap does not appear active (${SWAP_KB}kB). npm install may OOM."
+  warn "If it hangs or dies, reboot and re-run the script — swap persists via /etc/fstab."
 else
-  sudo -u "${REAL_USER}" npm install 2>&1 | tail -5
+  log "Swap confirmed active: $((SWAP_KB / 1024))MB"
+fi
+
+# npm flags for low-memory ARM builds:
+#   --max-old-space-size=512  — cap Node heap so it doesn't race the OOM killer
+#   --prefer-offline          — skip re-fetching if node_modules partially exists
+#   --no-audit                — skip audit network call (saves RAM + time)
+#   --no-fund                 — skip funding output
+NPM_FLAGS="--max-old-space-size=512 --prefer-offline --no-audit --no-fund"
+
+if [ "$REAL_USER" = "root" ]; then
+  NODE_OPTIONS="--max-old-space-size=512" npm install --unsafe-perm --no-audit --no-fund 2>&1 | tail -10
+else
+  sudo -u "${REAL_USER}" \
+    env NODE_OPTIONS="--max-old-space-size=512" \
+    npm install --no-audit --no-fund 2>&1 | tail -10
+fi
+
+# Catch silent OOM kill (npm exits non-zero but prints nothing)
+if [ $? -ne 0 ]; then
+  fail "npm install failed. Check dmesg for OOM kills: sudo dmesg | grep -i 'killed process'"
 fi
 log "Dependencies installed."
 
