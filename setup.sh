@@ -283,11 +283,12 @@ fi
 NPM_FLAGS="--max-old-space-size=512 --prefer-offline --no-audit --no-fund"
 
 if [ "$REAL_USER" = "root" ]; then
-  NODE_OPTIONS="--max-old-space-size=512" npm install --unsafe-perm --no-audit --no-fund 2>&1 | tail -10
+  NODE_OPTIONS="--max-old-space-size=512" npm install \
+    --unsafe-perm --omit=dev --ignore-scripts --no-audit --no-fund 2>&1 | tail -10
 else
   sudo -u "${REAL_USER}" \
     env NODE_OPTIONS="--max-old-space-size=512" \
-    npm install --no-audit --no-fund 2>&1 | tail -10
+    npm install --omit=dev --ignore-scripts --no-audit --no-fund 2>&1 | tail -10
 fi
 
 # Catch silent OOM kill (npm exits non-zero but prints nothing)
