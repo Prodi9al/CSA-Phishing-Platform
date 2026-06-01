@@ -235,12 +235,26 @@ log "System dependencies installed."
 
 # ── Step 6: Node.js 20 ─────────────────────────────────────
 info "Installing Node.js 20 via NodeSource..."
-if ! command -v node &>/dev/null || [[ "$(node -v)" != v20* ]]; then
+CURRENT_NODE_VER=$(node -v 2>/dev/null || echo "none")
+if [[ "$CURRENT_NODE_VER" == v20* ]]; then
+  log "Node.js $CURRENT_NODE_VER already installed (NodeSource OK)."
+else
+  # Remove any apt-managed nodejs first — it shadows the NodeSource install
+  # and is almost always an older version (v18 on Ubuntu 24.04)
+  if command -v node &>/dev/null; then
+    warn "Found Node $CURRENT_NODE_VER (not v20) — removing apt version before NodeSource install..."
+    apt-get remove -y nodejs npm 2>&1 | tail -2
+    apt-get autoremove -y 2>&1 | tail -2
+    rm -f /etc/apt/sources.list.d/nodesource.list
+    log "Old Node removed."
+  fi
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash - 2>&1 | tail -3
   apt-get install -y nodejs 2>&1 | tail -3
-  log "Node.js $(node -v) installed."
-else
-  log "Node.js $(node -v) already installed."
+  INSTALLED_VER=$(node -v 2>/dev/null || echo "unknown")
+  if [[ "$INSTALLED_VER" != v20* ]]; then
+    fail "Node.js install failed — got $INSTALLED_VER, expected v20.x. Check NodeSource connectivity."
+  fi
+  log "Node.js $INSTALLED_VER installed."
 fi
 
 # ── Step 7: PM2 ────────────────────────────────────────────
