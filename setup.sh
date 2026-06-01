@@ -2,16 +2,15 @@
 
 # ============================================================
 # CSA Phishing Awareness Demo — Oracle Always Free ARM Setup
-# Ubuntu 24.04 | Node 18+ | Nginx | Certbot | Cloudflared
+# Ubuntu 24.04 | Node 20 | Nginx | Certbot | PM2
 #
 # What it does:
 #   1. Installs Node.js 20 via NodeSource (not outdated apt version)
-#   2. Installs cloudflared for the correct architecture (arm64/amd64)
-#   3. Configures Nginx reverse proxy with WebSocket support
-#   4. Obtains SSL certificate via Certbot
-#   5. Runs npm install for project dependencies
-#   6. Opens ports 80 and 443 via iptables (Oracle-specific — no UFW)
-#   7. Sets up PM2 for relay.js process management
+#   2. Configures Nginx reverse proxy with WebSocket support
+#   3. Obtains SSL certificate via Certbot (free DNS → Oracle IP)
+#   4. Runs npm install for project dependencies
+#   5. Opens ports 80 and 443 via iptables (Oracle-specific — no UFW)
+#   6. Sets up PM2 for relay.js process management
 #
 # Run as: sudo bash setup.sh
 # ============================================================
@@ -49,7 +48,6 @@ read -p "  Relay WebSocket port [8765]: " WS_PORT
 WS_PORT=${WS_PORT:-8765}
 read -p "  Static file server port [8080]: " STATIC_PORT
 STATIC_PORT=${STATIC_PORT:-8080}
-read -p "  Your email for Certbot SSL [leave blank to skip]: " SSL_EMAIL
 
 echo ""
 log "Configuration collected."
@@ -70,7 +68,7 @@ fi
 
 # ── Step 3: System update ───────────────────────────────────
 info "Updating system packages..."
-apt-get update -q && apt-get upgrade -y -q
+apt-get update -q && apt-get upgrade -y -q 2>&1 | tail -3
 log "System updated."
 
 # ── Step 4: System dependencies ────────────────────────────
@@ -84,8 +82,8 @@ log "System dependencies installed."
 # ── Step 5: Node.js 20 ─────────────────────────────────────
 info "Installing Node.js 20 via NodeSource..."
 if ! command -v node &>/dev/null || [[ "$(node -v)" != v20* ]]; then
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-  apt-get install -y nodejs
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash - 2>&1 | tail -3
+  apt-get install -y nodejs 2>&1 | tail -3
   log "Node.js $(node -v) installed."
 else
   log "Node.js $(node -v) already installed."
@@ -93,29 +91,16 @@ fi
 
 # ── Step 6: PM2 ────────────────────────────────────────────
 info "Installing PM2 globally..."
-npm install -g pm2 --quiet
+npm install -g pm2 2>&1 | tail -3
 log "PM2 $(pm2 -v) installed."
 
-# ── Step 7: Cloudflared (architecture-aware) ───────────────
-info "Installing cloudflared..."
-if ! command -v cloudflared &>/dev/null; then
-  ARCH=$(dpkg --print-architecture)
-  curl -L -o /tmp/cloudflared.deb \
-    "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${ARCH}.deb"
-  dpkg -i /tmp/cloudflared.deb
-  rm /tmp/cloudflared.deb
-  log "cloudflared $(cloudflared --version 2>&1 | head -1) installed."
-else
-  log "cloudflared already installed."
-fi
-
-# ── Step 8: Project npm install ────────────────────────────
+# ── Step 7: Project npm install ────────────────────────────
 info "Installing project dependencies..."
 cd "${APP_DIR}"
-sudo -u "${REAL_USER}" npm install
+sudo -u "${REAL_USER}" npm install 2>&1 | tail -5
 log "Dependencies installed."
 
-# ── Step 9: Update WS_URL in phish.html and instructor.html ─
+# ── Step 8: Patch WS_URL in phish.html and instructor.html ──
 info "Patching WS_URL to wss://${DOMAIN}/ws..."
 sed -i "s|ws://[^'\"]*|wss://${DOMAIN}/ws|g" "${APP_DIR}/phish.html" 2>/dev/null || true
 sed -i "s|ws://[^'\"]*|wss://${DOMAIN}/ws|g" "${APP_DIR}/instructor.html" 2>/dev/null || true
@@ -123,8 +108,10 @@ sed -i "s|wss://[^'\"]*|wss://${DOMAIN}/ws|g" "${APP_DIR}/phish.html" 2>/dev/nul
 sed -i "s|wss://[^'\"]*|wss://${DOMAIN}/ws|g" "${APP_DIR}/instructor.html" 2>/dev/null || true
 log "WS_URL patched in phish.html and instructor.html."
 
-# ── Step 10: PM2 ecosystem config ──────────────────────────
+# ── Step 9: PM2 ecosystem config ───────────────────────────
 info "Creating PM2 ecosystem config..."
+mkdir -p /var/log/csa-phishing
+
 cat > "${APP_DIR}/ecosystem.config.js" << ECOF
 module.exports = {
   apps: [{
@@ -145,7 +132,6 @@ module.exports = {
 };
 ECOF
 
-mkdir -p /var/log/csa-phishing
 pm2 delete csa-relay 2>/dev/null || true
 pm2 start "${APP_DIR}/ecosystem.config.js"
 pm2 save
@@ -159,7 +145,7 @@ fi
 
 log "PM2 relay started and configured for reboot survival."
 
-# ── Step 11: Nginx config ───────────────────────────────────
+# ── Step 10: Nginx config ───────────────────────────────────
 info "Configuring Nginx for ${DOMAIN}..."
 
 cat > /etc/nginx/sites-available/csa-phishing << NGXEOF
@@ -167,7 +153,6 @@ server {
     listen 80;
     server_name ${DOMAIN};
 
-    # Serve static phishing page files
     root ${APP_DIR};
     index phish.html;
     client_max_body_size 10M;
@@ -176,7 +161,6 @@ server {
         try_files \$uri \$uri/ /phish.html;
     }
 
-    # WebSocket relay proxy
     location /ws {
         proxy_pass http://127.0.0.1:${WS_PORT};
         proxy_http_version 1.1;
@@ -196,8 +180,8 @@ ln -sf /etc/nginx/sites-available/csa-phishing /etc/nginx/sites-enabled/
 nginx -t && systemctl enable nginx && systemctl reload nginx
 log "Nginx configured."
 
-# ── Step 12: iptables firewall (Oracle-specific) ────────────
-info "Opening ports 80 and 443 via iptables (Oracle Ubuntu — not UFW)..."
+# ── Step 11: iptables firewall (Oracle-specific — no UFW) ───
+info "Opening ports 80 and 443 via iptables..."
 
 iptables -C INPUT -m state --state NEW -p tcp --dport 80 -j ACCEPT 2>/dev/null \
   || iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
@@ -205,34 +189,27 @@ iptables -C INPUT -m state --state NEW -p tcp --dport 80 -j ACCEPT 2>/dev/null \
 iptables -C INPUT -m state --state NEW -p tcp --dport 443 -j ACCEPT 2>/dev/null \
   || iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT
 
-# Block direct access to relay port — must go through Nginx
+# Block direct access to relay port — all traffic must go through Nginx
 iptables -C INPUT -m state --state NEW -p tcp --dport "${WS_PORT}" -j DROP 2>/dev/null \
   || iptables -I INPUT 6 -m state --state NEW -p tcp --dport "${WS_PORT}" -j DROP
 
 netfilter-persistent save
 log "iptables rules saved."
 
-# ── Step 13: SSL via Certbot ────────────────────────────────
+# ── Step 12: SSL via Certbot ────────────────────────────────
 echo ""
 if [[ "${DOMAIN}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   warn "IP address provided — Certbot requires a real domain name."
   warn "After DNS propagates run: sudo certbot --nginx -d ${DOMAIN}"
 else
   info "Requesting SSL certificate for ${DOMAIN}..."
-  if [ -n "${SSL_EMAIL}" ]; then
-    certbot --nginx -d "${DOMAIN}" --non-interactive --agree-tos \
-      --email "${SSL_EMAIL}" --redirect \
-      && log "SSL certificate issued." \
-      || warn "Certbot failed. Run manually: sudo certbot --nginx -d ${DOMAIN}"
-  else
-    certbot --nginx -d "${DOMAIN}" --non-interactive --agree-tos \
-      --register-unsafely-without-email --redirect \
-      && log "SSL certificate issued." \
-      || warn "Certbot failed. Run manually: sudo certbot --nginx -d ${DOMAIN}"
-  fi
+  certbot --nginx -d "${DOMAIN}" --non-interactive --agree-tos \
+    --register-unsafely-without-email --redirect \
+    && log "SSL certificate issued." \
+    || warn "Certbot failed. Run manually: sudo certbot --nginx -d ${DOMAIN}"
 fi
 
-# ── Step 14: Idle-prevention cron (Oracle reclaims idle VMs) ─
+# ── Step 13: Idle-prevention cron (Oracle reclaims idle VMs) ─
 info "Setting up idle-prevention cron..."
 (crontab -l 2>/dev/null | grep -v "md5sum"; \
   echo "*/10 * * * * dd if=/dev/urandom bs=1k count=1 2>/dev/null | md5sum > /dev/null 2>&1") \
