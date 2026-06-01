@@ -50,6 +50,118 @@ echo "║   CSA Phishing Awareness Demo — Oracle ARM Server Setup  ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 
+
+# ── Pre-flight: System diagnostics ─────────────────────────
+info "Running pre-flight checks..."
+echo ""
+PREFLIGHT_OK=true
+
+# 1. Architecture
+ARCH=$(uname -m)
+if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+  log "Architecture: $ARCH (ARM64 OK)"
+else
+  warn "Architecture: $ARCH — this script targets ARM64. Some steps may behave differently."
+fi
+
+# 2. OS
+OS_ID=$(. /etc/os-release && echo "$ID $VERSION_ID")
+log "OS: $OS_ID"
+if [[ "$OS_ID" != *"ubuntu"* ]]; then
+  warn "Not Ubuntu — apt-get steps may fail on this distro."
+fi
+
+# 3. RAM
+TOTAL_RAM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+AVAIL_RAM_KB=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
+TOTAL_RAM_MB=$((TOTAL_RAM_KB / 1024))
+AVAIL_RAM_MB=$((AVAIL_RAM_KB / 1024))
+if [ "$AVAIL_RAM_MB" -lt 400 ]; then
+  warn "RAM: ${AVAIL_RAM_MB}MB available / ${TOTAL_RAM_MB}MB total — CRITICALLY LOW. npm WILL OOM."
+  warn "  Stop other processes or reboot before continuing."
+  PREFLIGHT_OK=false
+elif [ "$AVAIL_RAM_MB" -lt 900 ]; then
+  warn "RAM: ${AVAIL_RAM_MB}MB available / ${TOTAL_RAM_MB}MB total — low, swap will be needed."
+else
+  log "RAM: ${AVAIL_RAM_MB}MB available / ${TOTAL_RAM_MB}MB total (OK)"
+fi
+
+# 4. Swap
+SWAP_KB=$(grep SwapTotal /proc/meminfo | awk '{print $2}')
+SWAP_MB=$((SWAP_KB / 1024))
+if [ "$SWAP_MB" -gt 0 ]; then
+  log "Swap: ${SWAP_MB}MB already active"
+else
+  warn "Swap: not yet active (will be created in Step 3)"
+fi
+
+# 5. Disk space
+DISK_AVAIL_KB=$(df --output=avail / | tail -1)
+DISK_AVAIL_MB=$((DISK_AVAIL_KB / 1024))
+if [ "$DISK_AVAIL_MB" -lt 1024 ]; then
+  warn "Disk: only ${DISK_AVAIL_MB}MB free — need at least 1GB. Swap file creation may also fail."
+  PREFLIGHT_OK=false
+elif [ "$DISK_AVAIL_MB" -lt 2048 ]; then
+  warn "Disk: ${DISK_AVAIL_MB}MB free — tight. Swap file may fail if under 2GB."
+else
+  log "Disk: ${DISK_AVAIL_MB}MB free on / (OK)"
+fi
+
+# 6. CPU cores
+CPU_CORES=$(nproc)
+log "CPU cores: $CPU_CORES"
+if [ "$CPU_CORES" -lt 2 ]; then
+  warn "Only 1 CPU core — builds will be slow."
+fi
+
+# 7. Outbound internet (npm registry)
+if curl -sf --max-time 8 https://registry.npmjs.org/ > /dev/null 2>&1; then
+  log "Internet: npm registry reachable (OK)"
+else
+  warn "Internet: cannot reach registry.npmjs.org"
+  warn "  Check your OCI VCN Security List allows outbound TCP 443."
+  PREFLIGHT_OK=false
+fi
+
+# 8. OOM history since last boot
+OOM_COUNT=$(dmesg 2>/dev/null | grep -c "Out of memory\|Killed process" || echo 0)
+if [ "$OOM_COUNT" -gt 0 ]; then
+  warn "OOM kills in dmesg since last boot: $OOM_COUNT event(s)"
+  warn "  This confirms previous npm runs were killed silently."
+  warn "  The swap + NODE_OPTIONS heap cap in this script will address it."
+else
+  log "OOM history: none since last boot (clean)"
+fi
+
+# 9. Port conflicts
+for PORT in 80 443; do
+  if ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
+    PROC=$(ss -tlnp | grep ":${PORT} " | awk '{print $NF}' | head -1)
+    warn "Port ${PORT} already bound by: ${PROC} — Nginx may fail to start."
+  else
+    log "Port ${PORT}: free"
+  fi
+done
+
+# 10. Partial node_modules from a previous failed install
+if [ -d "${APP_DIR}/node_modules" ]; then
+  MOD_COUNT=$(find "${APP_DIR}/node_modules" -maxdepth 1 -mindepth 1 -type d | wc -l)
+  warn "node_modules already exists with ${MOD_COUNT} packages — may be a partial failed install."
+  warn "  If npm install fails again: rm -rf ${APP_DIR}/node_modules && sudo bash setup.sh"
+else
+  log "node_modules: not present (fresh install)"
+fi
+
+echo ""
+if [ "$PREFLIGHT_OK" = true ]; then
+  log "Pre-flight complete — no blocking issues found."
+else
+  echo -e "\033[0;31m[!] One or more blocking issues detected above.\033[0m"
+  read -rp "  Continue anyway? [y/N]: " CONTINUE_ANYWAY
+  [[ "${CONTINUE_ANYWAY,,}" != "y" ]] && { echo "Aborted."; exit 1; }
+fi
+echo ""
+
 # ── Step 1: Collect configuration ──────────────────────────
 info "Collecting configuration..."
 echo ""
