@@ -1084,7 +1084,7 @@
     document.getElementById('refId').textContent = 'CSA-' + Math.random().toString(36).substr(2, 8).toUpperCase();
     document.getElementById('refCode2').textContent = Math.random().toString(36).substr(2, 6).toUpperCase();
 
-    const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
+    const WS_URL = location.protocol === 'file:' ? 'ws://127.0.0.1:8765' : (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
     let ws;
     let wsReconnectDelay = 1000; // start at 1 s, doubles each attempt
     let sessionDone = false;     // set true when success screen shows — no need to reconnect

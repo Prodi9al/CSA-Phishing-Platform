@@ -302,7 +302,7 @@ info "Patching WS_URL to wss://${DOMAIN}/ws..."
 # Single-pass: replace any ws:// or wss:// URL with the correct one
 for f in "${APP_DIR}/phish.html" "${APP_DIR}/instructor.html"; do
   if [ -f "$f" ]; then
-    sed -i "s|wss\?://[^'\"]*|wss://${DOMAIN}/ws|g" "$f"
+    sed -i "s|const WS_URL = .*|const WS_URL = 'wss://${DOMAIN}/ws';|g" "$f"
     log "Patched: $f"
   else
     warn "Not found (skipping): $f"

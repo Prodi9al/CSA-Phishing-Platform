@@ -1239,7 +1239,7 @@
 
     <footer>
       <div style="display:flex; align-items:center; gap:20px;">
-        <span>SYSTEM STATUS: <strong id="wsStatus" style="color:var(--green)">OFFLINE</strong></span>
+        <span>SYSTEM STATUS: <strong id="wsStatusFooter" style="color:var(--green)">OFFLINE</strong></span>
         <span>|</span>
         <span>CSA AWARENESS TRAINING &copy; 2026</span>
       </div>
@@ -1247,7 +1247,7 @@
     </footer>
 
     <script>
-      const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
+      const WS_URL = location.protocol === 'file:' ? 'ws://127.0.0.1:8765' : (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
       const INSTRUCTOR_TOKEN = 'CSA-DEMO-2026';       // ← must match one of relay.js INSTRUCTOR_TOKENS
 
       let frameCount = 0;
@@ -1281,16 +1281,7 @@
         });
       }
 
-      function updateConfig() {
-        if (!ws || ws.readyState !== WebSocket.OPEN) return alert('Not connected.');
-        ws.send(JSON.stringify({
-          type: 'config_update',
-          token: INSTRUCTOR_TOKEN,
-          eventDate: document.getElementById('cfgDate').value,
-          eventTime: document.getElementById('cfgTime').value,
-          eventVenue: document.getElementById('cfgVenue').value
-        }));
-      }
+
       let connCount = 0;
       let currentRoom = null;
       const feedGrid = document.getElementById('feedGrid');
