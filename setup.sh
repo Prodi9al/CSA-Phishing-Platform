@@ -412,6 +412,25 @@ systemctl enable nginx
 systemctl reload nginx
 log "Nginx configured."
 
+# ── Step 11b: Make static files readable by nginx ──────────
+# nginx runs as www-data but the app usually lives under /home/<user> whose
+# default perms (750/700) block nginx → 500/403 "Permission denied". Grant
+# traverse (+x) on every dir up to the app, and read on the app dir itself.
+info "Ensuring nginx can read ${APP_DIR}..."
+DIR_PERM_FIX=1
+CUR="$APP_DIR"
+while :; do
+  chmod o+x "$CUR" 2>/dev/null || { warn "Could not chmod ${CUR} — nginx may still 500."; DIR_PERM_FIX=0; break; }
+  [ "$CUR" = "/" ] && break
+  CUR="$(dirname "$CUR")"
+done
+chmod -R o+rX "$APP_DIR" 2>/dev/null || { warn "Could not chmod app dir contents."; DIR_PERM_FIX=0; }
+if [ "$DIR_PERM_FIX" = "1" ]; then
+  log "nginx read access granted (traverse + read)."
+else
+  warn "Permission fix incomplete — if https://${DOMAIN} returns 500, run: sudo chmod -R a+rX ${APP_DIR} && sudo chmod a+x /home /home/ubuntu /home/ubuntu/CSA-Phishing-Platform"
+fi
+
 # ── Step 12: iptables firewall ─────────────────────────────
 info "Opening ports 80 and 443 via iptables..."
 

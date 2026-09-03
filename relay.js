@@ -30,6 +30,38 @@ const DB_FILE = path.join(__dirname, 'sessions.db');
 // Session label
 const DEFAULT_SESSION = process.env.SESSION_ID || new Date().toISOString().slice(0, 16).replace(':', '-');
 
+// ── LOGGING ───────────────────────────────────────────────────────────
+// Defined before the token-fallback log() call below so startup never hits
+// the temporal-dead-zone ReferenceError on _logBuf.
+function ts() { return new Date().toISOString(); }
+
+const _logBuf = [];
+let _logDraining = false;
+
+function log(msg) {
+  const line = `[${ts()}] ${msg}`;
+  console.log(line);
+  _logBuf.push(line);
+  if (!_logDraining) {
+    _logDraining = true;
+    setImmediate(flushLog);
+  }
+}
+
+function flushLog() {
+  if (_logBuf.length === 0) { _logDraining = false; return; }
+  const batch = _logBuf.join('\n') + '\n';
+  _logBuf.length = 0;
+  fs.appendFile(LOG_FILE, batch, (err) => {
+    if (err) console.error('[log write error]', err.message);
+    _logDraining = false;
+    if (_logBuf.length > 0) {
+      _logDraining = true;
+      setImmediate(flushLog);
+    }
+  });
+}
+
 // ── TOKENS FROM .env ──────────────────────────────────────────────────
 // Each INSTR_TOKEN_* env var has the format  "TOKEN:room"
 // e.g.  INSTR_TOKEN_DEFAULT=CSA-DEMO-2026:default
@@ -64,36 +96,6 @@ const DEFAULT_CONFIG = {
   eventVenue: 'NCA Tower, Airport By-Pass, Accra'
 };
 let currentConfig = { ...DEFAULT_CONFIG };
-
-// ── LOGGING ───────────────────────────────────────────────────────────
-function ts() { return new Date().toISOString(); }
-
-const _logBuf = [];
-let _logDraining = false;
-
-function log(msg) {
-  const line = `[${ts()}] ${msg}`;
-  console.log(line);
-  _logBuf.push(line);
-  if (!_logDraining) {
-    _logDraining = true;
-    setImmediate(flushLog);
-  }
-}
-
-function flushLog() {
-  if (_logBuf.length === 0) { _logDraining = false; return; }
-  const batch = _logBuf.join('\n') + '\n';
-  _logBuf.length = 0;
-  fs.appendFile(LOG_FILE, batch, (err) => {
-    if (err) console.error('[log write error]', err.message);
-    _logDraining = false;
-    if (_logBuf.length > 0) {
-      _logDraining = true;
-      setImmediate(flushLog);
-    }
-  });
-}
 
 // ── GEO LOOKUP CACHE ─────────────────────────────────────────────────
 const geoCache = new Map();
