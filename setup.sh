@@ -244,9 +244,14 @@ else
 fi
 
 # ── Step 7: PM2 ────────────────────────────────────────────
-info "Installing PM2 globally..."
-npm install -g pm2 2>&1 | tail -3
-log "PM2 $(pm2 -v) installed."
+info "Installing PM2 globally (this downloads + links PM2)..."
+if npm install -g pm2 > /tmp/pm2-install.log 2>&1; then
+  log "PM2 $(pm2 -v) installed."
+else
+  echo -e "${RED}[✗] PM2 install failed — last output:${NC}"
+  tail -15 /tmp/pm2-install.log
+  fail "npm install -g pm2 failed. See /tmp/pm2-install.log for details."
+fi
 
 # ── Step 8: Project npm install ────────────────────────────
 info "Installing project dependencies..."
@@ -261,24 +266,53 @@ else
   log "Swap confirmed active: $((SWAP_KB / 1024))MB"
 fi
 
-NPM_FLAGS="--max-old-space-size=1024 --no-audit --no-fund"
-
 # better-sqlite3 is a native module and MUST run its install script (builds the
 # binding against node-gyp). Removing --ignore-scripts is required or the relay
 # will crash at startup with 'Cannot find module .../build/Release/better_sqlite3.node'.
+#
+# Progress visibility: full npm output goes to a rotating install log AND the
+# last few lines are live-tailed so you can see what stage it's in rather than
+# staring at a blank screen while better-sqlite3 compiles.
+INSTALL_LOG="${APP_DIR}/.npm-install.log"
+: > "$INSTALL_LOG"
+
+echo -e "${YELLOW}  ↳ npm install — this can take 1–3 min on a t3.small."
+echo -e "  ↳ 'prebuild-install' → 'node-gyp rebuild' lines mean better-sqlite3 is"
+echo -e "    compiling its native binding. A long pause here is normal."
+echo -e "  ↳ Full log: $INSTALL_LOG (tail it in another shell if unsure)${NC}"
+
 if [ "$REAL_USER" = "root" ]; then
   NODE_OPTIONS="--max-old-space-size=1024" npm install \
-    --unsafe-perm --omit=dev --prefer-offline --no-audit --no-fund 2>&1 | tail -10
+    --unsafe-perm --omit=dev --prefer-offline --no-audit --no-fund \
+    >> "$INSTALL_LOG" 2>&1 &
 else
   sudo -u "${REAL_USER}" \
     env NODE_OPTIONS="--max-old-space-size=1024" \
-    npm install --omit=dev --prefer-offline --no-audit --no-fund 2>&1 | tail -10
+    npm install --omit=dev --prefer-offline --no-audit --no-fund \
+    >> "$INSTALL_LOG" 2>&1 &
+fi
+NPM_PID=$!
+
+# Live-tails npm so the user isn't left wondering if it's stuck
+while kill -0 "$NPM_PID" 2>/dev/null; do
+  tail -n 3 "$INSTALL_LOG" 2>/dev/null | sed 's/^/    /'
+  sleep 2
+done
+wait "$NPM_PID"
+NPM_EXIT=$?
+
+# Detect stage keywords in the log to explain what actually happened
+if grep -qi "prebuild-install\|node-gyp rebuild\|gyp ERR\|CXX(" "$INSTALL_LOG"; then
+  echo -e "${YELLOW}  ↳ Native module (better-sqlite3) build detected in output above.${NC}"
 fi
 
 # Catch silent OOM kill (npm exits non-zero but prints nothing)
-if [ $? -ne 0 ]; then
-  fail "npm install failed. Check dmesg for OOM kills: sudo dmesg | grep -i 'killed process'"
+if [ "$NPM_EXIT" -ne 0 ]; then
+  echo -e "${RED}[✗] npm install failed — last 15 lines:${NC}"
+  tail -15 "$INSTALL_LOG"
+  fail "npm install failed. Check dmesg for OOM kills: sudo dmesg | grep -i 'killed process' (full log: $INSTALL_LOG)"
 fi
+rm -f "$INSTALL_LOG"
 log "Dependencies installed."
 
 # ── Step 9: Patch WS_URL in phish.html and instructor.html ──
