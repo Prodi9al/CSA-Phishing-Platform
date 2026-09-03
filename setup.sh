@@ -213,10 +213,17 @@ log "System updated."
 
 # ── Step 5: System dependencies ────────────────────────────
 info "Installing system dependencies..."
+# DEBIAN_FRONTEND=noninteractive is REQUIRED — iptables-persistent pops a
+# debconf prompt ("Save IPv4 rules?") that otherwise hangs the step with no TTY.
+export DEBIAN_FRONTEND=noninteractive
+debconf-set-selections <<< "iptables-persistent iptables-persistent/autosave_v4 boolean true"
+debconf-set-selections <<< "iptables-persistent iptables-persistent/autosave_v6 boolean true"
+
 apt-get install -y \
   curl git nginx certbot python3-certbot-nginx \
-  build-essential ca-certificates gnupg lsb-release \
+  ca-certificates gnupg lsb-release \
   netfilter-persistent iptables-persistent python3 2>&1 | tail -5
+unset DEBIAN_FRONTEND
 log "System dependencies installed."
 
 # ── Step 6: Node.js 20 ─────────────────────────────────────
@@ -229,13 +236,13 @@ else
   # and is almost always an older version (v18 on Ubuntu 24.04)
   if command -v node &>/dev/null; then
     warn "Found Node $CURRENT_NODE_VER (not v20) — removing apt version before NodeSource install..."
-    apt-get remove -y nodejs npm 2>&1 | tail -2
-    apt-get autoremove -y 2>&1 | tail -2
+    DEBIAN_FRONTEND=noninteractive apt-get remove -y nodejs npm 2>&1 | tail -2
+    DEBIAN_FRONTEND=noninteractive apt-get autoremove -y 2>&1 | tail -2
     rm -f /etc/apt/sources.list.d/nodesource.list
     log "Old Node removed."
   fi
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash - 2>&1 | tail -3
-  apt-get install -y nodejs 2>&1 | tail -3
+  DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs 2>&1 | tail -3
   INSTALLED_VER=$(node -v 2>/dev/null || echo "unknown")
   if [[ "$INSTALLED_VER" != v20* ]]; then
     fail "Node.js install failed — got $INSTALLED_VER, expected v20.x. Check NodeSource connectivity."
