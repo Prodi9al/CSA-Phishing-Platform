@@ -1,20 +1,10 @@
 #!/bin/bash
 
 # ============================================================
-# CSA Phishing Awareness Demo — Oracle Always Free ARM Setup
-# Ubuntu 24.04 | Node 20 | Nginx | Certbot | PM2
+# CSA Phishing Awareness Demo — AWS x86_64 Setup
+# Ubuntu 22.04/24.04 | Node 20 | Nginx | Certbot | PM2
 #
-# Fixes applied over original:
-#   - Swap: use dd fallback if fallocate fails (some Oracle filesystems)
-#   - npm install: guard against running as root with no real user
-#   - relay.js existence check before PM2 start
-#   - PM2 startup: run directly instead of fragile grep+eval
-#   - Certbot: removed deprecated --register-unsafely-without-email,
-#              added --email flag prompt; falls back to --register-unsafely
-#              only on older certbot versions
-#   - sed patching: collapsed to two passes (ws→wss first, then set domain)
-#   - Certbot renewal cron added automatically
-#   - Minor: double-quote all variable expansions for safety
+# Target: AWS EC2 instances (x86_64) — t3.micro or larger
 #
 # Run as: sudo bash setup.sh
 # ============================================================
@@ -46,7 +36,7 @@ APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║   CSA Phishing Awareness Demo — Oracle ARM Server Setup  ║"
+echo "║  CSA Phishing Awareness Demo — AWS x86_64 Server Setup  ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -58,10 +48,12 @@ PREFLIGHT_OK=true
 
 # 1. Architecture
 ARCH=$(uname -m)
-if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
-  log "Architecture: $ARCH (ARM64 OK)"
+if [[ "$ARCH" == "x86_64" ]]; then
+  log "Architecture: $ARCH (x86_64 OK)"
+elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+  warn "Architecture: $ARCH — this script targets x86_64. Some steps may behave differently."
 else
-  warn "Architecture: $ARCH — this script targets ARM64. Some steps may behave differently."
+  warn "Architecture: $ARCH — untested. Some steps may behave differently."
 fi
 
 # 2. OS
@@ -119,7 +111,7 @@ if curl -sf --max-time 8 https://registry.npmjs.org/ > /dev/null 2>&1; then
   log "Internet: npm registry reachable (OK)"
 else
   warn "Internet: cannot reach registry.npmjs.org"
-  warn "  Check your OCI VCN Security List allows outbound TCP 443."
+  warn "  Check your AWS Security Group allows outbound TCP 443."
   PREFLIGHT_OK=false
 fi
 
@@ -183,7 +175,7 @@ read -rp "  Domain name (e.g. csatraining.mooo.com): " DOMAIN
 read -rp "  Email for SSL cert (leave blank to skip): " SSL_EMAIL
 read -rp "  Relay WebSocket port [8765]: " WS_PORT
 WS_PORT="${WS_PORT:-8765}"
-read -rp "  Static file server port [8080]: " STATIC_PORT
+read -rp "  Static file server port [8080] (unused — relay serves static): " STATIC_PORT
 STATIC_PORT="${STATIC_PORT:-8080}"
 
 # Validate required fields
@@ -200,17 +192,11 @@ if [ ! -f "${APP_DIR}/relay.js" ]; then
   warn "Copy relay.js into ${APP_DIR} then run: pm2 start ${APP_DIR}/ecosystem.config.js"
 fi
 
-# ── Step 3: Swap file (CRITICAL on Oracle ARM) ──────────────
-info "Setting up 2GB swap file (required for npm builds on ARM)..."
+# ── Step 3: Swap file ──────────────────────────────────────
+info "Setting up 2GB swap file..."
 if [ ! -f /swapfile ]; then
-  # Try fallocate first; fall back to dd (works on all filesystems)
-  if fallocate -l 2G /swapfile 2>/dev/null; then
-    log "Swap allocated via fallocate."
-  else
-    warn "fallocate failed (common on Oracle btrfs/ext4 with holes) — using dd fallback..."
-    dd if=/dev/zero of=/swapfile bs=1M count=2048 status=progress 2>&1
-    log "Swap allocated via dd."
-  fi
+  fallocate -l 2G /swapfile 2>/dev/null \
+    || dd if=/dev/zero of=/swapfile bs=1M count=2048 status=progress 2>&1
   chmod 600 /swapfile
   mkswap /swapfile
   swapon /swapfile
@@ -266,29 +252,27 @@ log "PM2 $(pm2 -v) installed."
 info "Installing project dependencies..."
 cd "${APP_DIR}" || fail "Cannot cd to ${APP_DIR}"
 
-# Confirm swap is active before npm (critical on Oracle ARM)
+# Confirm swap is active before npm
 SWAP_KB=$(grep SwapTotal /proc/meminfo | awk '{print $2}')
 if [ "${SWAP_KB:-0}" -lt 1000000 ]; then
-  warn "Swap does not appear active (${SWAP_KB}kB). npm install may OOM."
+  warn "Swap does not appear active (${SWAP_KB}kB). npm install may OOM on low-RAM instances."
   warn "If it hangs or dies, reboot and re-run the script — swap persists via /etc/fstab."
 else
   log "Swap confirmed active: $((SWAP_KB / 1024))MB"
 fi
 
-# npm flags for low-memory ARM builds:
-#   --max-old-space-size=512  — cap Node heap so it doesn't race the OOM killer
-#   --prefer-offline          — skip re-fetching if node_modules partially exists
-#   --no-audit                — skip audit network call (saves RAM + time)
-#   --no-fund                 — skip funding output
-NPM_FLAGS="--max-old-space-size=512 --prefer-offline --no-audit --no-fund"
+NPM_FLAGS="--max-old-space-size=1024 --no-audit --no-fund"
 
+# better-sqlite3 is a native module and MUST run its install script (builds the
+# binding against node-gyp). Removing --ignore-scripts is required or the relay
+# will crash at startup with 'Cannot find module .../build/Release/better_sqlite3.node'.
 if [ "$REAL_USER" = "root" ]; then
-  NODE_OPTIONS="--max-old-space-size=512" npm install \
-    --unsafe-perm --omit=dev --ignore-scripts --no-audit --no-fund 2>&1 | tail -10
+  NODE_OPTIONS="--max-old-space-size=1024" npm install \
+    --unsafe-perm --omit=dev --prefer-offline --no-audit --no-fund 2>&1 | tail -10
 else
   sudo -u "${REAL_USER}" \
-    env NODE_OPTIONS="--max-old-space-size=512" \
-    npm install --omit=dev --ignore-scripts --no-audit --no-fund 2>&1 | tail -10
+    env NODE_OPTIONS="--max-old-space-size=1024" \
+    npm install --omit=dev --prefer-offline --no-audit --no-fund 2>&1 | tail -10
 fi
 
 # Catch silent OOM kill (npm exits non-zero but prints nothing)
@@ -321,7 +305,7 @@ module.exports = {
     instances: 1,
     autorestart: true,
     watch: false,
-    max_memory_restart: '512M',
+    max_memory_restart: '800M',
     env: {
       NODE_ENV: 'production',
       PORT: ${WS_PORT}
@@ -387,7 +371,7 @@ systemctl enable nginx
 systemctl reload nginx
 log "Nginx configured."
 
-# ── Step 12: iptables firewall (Oracle-specific — no UFW) ───
+# ── Step 12: iptables firewall ─────────────────────────────
 info "Opening ports 80 and 443 via iptables..."
 
 iptables -C INPUT -m state --state NEW -p tcp --dport 80 -j ACCEPT 2>/dev/null \
@@ -434,13 +418,6 @@ else
   fi
 fi
 
-# ── Step 14: Idle-prevention cron (Oracle reclaims idle VMs) ─
-info "Setting up idle-prevention cron..."
-(crontab -l 2>/dev/null | grep -v "idle-prevent"; \
-  echo "*/10 * * * * dd if=/dev/urandom bs=1k count=1 2>/dev/null | md5sum > /dev/null # idle-prevent") \
-  | crontab -
-log "Idle-prevention cron active."
-
 # ── Summary ─────────────────────────────────────────────────
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
@@ -459,9 +436,9 @@ echo "    pm2 logs csa-relay       — live relay logs"
 echo "    pm2 restart csa-relay    — restart relay"
 echo "    sudo certbot renew       — renew SSL cert manually"
 echo ""
-echo -e "  ${RED}OCI Console → Networking → VCN → Security Lists:${NC}"
-echo "    Add Ingress Rule: TCP port 80  from 0.0.0.0/0"
-echo "    Add Ingress Rule: TCP port 443 from 0.0.0.0/0"
+echo -e "  ${RED}AWS EC2 Console → Security Groups:${NC}"
+echo "    Add Inbound Rule: TCP port 80  from 0.0.0.0/0"
+echo "    Add Inbound Rule: TCP port 443 from 0.0.0.0/0"
 echo ""
 echo -e "  ${YELLOW}Before running a session:${NC}"
 echo "    1. Edit relay.js → update INSTRUCTOR_TOKENS"

