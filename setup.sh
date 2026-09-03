@@ -221,7 +221,7 @@ debconf-set-selections <<< "iptables-persistent iptables-persistent/autosave_v6 
 
 apt-get install -y \
   curl git nginx certbot python3-certbot-nginx \
-  ca-certificates gnupg lsb-release \
+  build-essential ca-certificates gnupg lsb-release \
   netfilter-persistent iptables-persistent python3 2>&1 | tail -5
 unset DEBIAN_FRONTEND
 log "System dependencies installed."
