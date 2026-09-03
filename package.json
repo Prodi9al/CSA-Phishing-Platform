@@ -8,7 +8,7 @@
     "setup": "npm install",
     "lint": "eslint .",
     "audit": "npm audit --audit-level=high",
-    "prepare": "husky install"
+    "prepare": "husky || true"
   },
   "keywords": [
     "cybersecurity",
@@ -23,7 +23,7 @@
     "node": ">=16.0.0"
   },
   "dependencies": {
-    "better-sqlite3": "^12.8.0",
+    "better-sqlite3": "^13.0.3",
     "dotenv": "^17.3.1",
     "ws": "^8.18.0"
   },
